@@ -15,6 +15,8 @@ const memorySourceId = "apoo-memories";
 const memoryClusterLayerId = "apoo-memory-clusters";
 const memoryClusterCountLayerId = "apoo-memory-cluster-count";
 const memoryPointLayerId = "apoo-memory-points";
+const maxClusterOpenZoom = 21.75;
+const maxClusterZoom = 22;
 
 type MemoryMapProps = {
   className?: string;
@@ -153,7 +155,7 @@ function MapboxMemoryMap({
 
       mapRef.current.addSource(memorySourceId, {
         cluster: true,
-        clusterMaxZoom: 22,
+        clusterMaxZoom: maxClusterZoom,
         clusterRadius: 44,
         data: memoryData,
         type: "geojson",
@@ -282,14 +284,17 @@ function MapboxMemoryMap({
           return;
         }
 
-        const exactCoordinateMemories = memoriesAtExactCoordinate(coordinates);
+        const currentZoom = mapRef.current?.getZoom() ?? 1;
+        const reachedClusterEnd = currentZoom >= maxClusterOpenZoom;
 
-        if (exactCoordinateMemories.length > 1) {
-          selectMemoryGroup(exactCoordinateMemories);
-          return;
-        }
+        if (reachedClusterEnd) {
+          const exactCoordinateMemories = memoriesAtExactCoordinate(coordinates);
 
-        if ((mapRef.current?.getZoom() ?? 0) >= 17) {
+          if (exactCoordinateMemories.length > 1) {
+            selectMemoryGroup(exactCoordinateMemories);
+            return;
+          }
+
           const nearbyMemories = memoriesNearCluster(coordinates);
 
           if (selectMemoryGroup(nearbyMemories)) {
@@ -300,7 +305,7 @@ function MapboxMemoryMap({
         mapRef.current?.easeTo({
           center: coordinates as [number, number],
           duration: 650,
-          zoom: Math.min(22, (mapRef.current?.getZoom() ?? 1) + 2),
+          zoom: Math.min(maxClusterZoom, currentZoom + 2),
         });
       });
 

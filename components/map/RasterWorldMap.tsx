@@ -137,23 +137,6 @@ function markerHtml(count: number, isPrivate: boolean) {
   return `<span style="${baseStyle};">${formatClusterCount(count)}</span>`;
 }
 
-function hasExactSameLocation(markers: RasterWorldMapMarker[]) {
-  const [firstMarker] = markers;
-
-  if (!firstMarker) {
-    return false;
-  }
-
-  const latitude = firstMarker.latitude.toFixed(6);
-  const longitude = firstMarker.longitude.toFixed(6);
-
-  return markers.every(
-    (marker) =>
-      marker.latitude.toFixed(6) === latitude &&
-      marker.longitude.toFixed(6) === longitude,
-  );
-}
-
 function buildRasterClusters(
   leaflet: LeafletModule,
   map: LeafletMap,
@@ -351,12 +334,9 @@ export function RasterWorldMap({
         leafletMarker.on("click", () => {
           const nextZoom = Math.min(maxClusterZoom, map.getZoom() + 2);
           const markerIds = cluster.markers.map((marker) => marker.id);
+          const reachedClusterEnd = map.getZoom() >= maxClusterZoom - 0.25;
 
-          if (
-            onMarkerClusterSelect &&
-            (hasExactSameLocation(cluster.markers) ||
-              map.getZoom() >= maxClusterZoom - 0.25)
-          ) {
+          if (onMarkerClusterSelect && reachedClusterEnd) {
             onMarkerClusterSelect(markerIds);
             return;
           }
