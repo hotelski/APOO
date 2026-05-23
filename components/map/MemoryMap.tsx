@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { RasterWorldMap } from "@/components/map/RasterWorldMap";
 import { cn } from "@/lib/cn";
@@ -10,6 +10,11 @@ import {
   mapboxToken,
 } from "@/lib/mapbox";
 import type { MapLocationTarget, Memory } from "@/types";
+
+const memorySourceId = "apoo-memories";
+const memoryClusterLayerId = "apoo-memory-clusters";
+const memoryClusterCountLayerId = "apoo-memory-cluster-count";
+const memoryPointLayerId = "apoo-memory-points";
 
 type MemoryMapProps = {
   className?: string;
@@ -40,6 +45,7 @@ export function MemoryMap({
   if (!mapboxToken) {
     return (
       <RasterWorldMap
+        clusterMarkers
         className={className}
         markers={rasterMarkers}
         searchTarget={searchTarget}
@@ -65,8 +71,37 @@ function MapboxMemoryMap({
 }: MemoryMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const memoriesRef = useRef(memories);
+  const onMemorySelectRef = useRef(onMemorySelect);
+  const [mapReady, setMapReady] = useState(false);
+
+  const memoryData = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
+    () => ({
+      features: memories.map((memory) => ({
+        geometry: {
+          coordinates: [memory.longitude, memory.latitude],
+          type: "Point",
+        },
+        properties: {
+          memoryId: memory.id,
+          privacy: memory.privacy,
+          title: memory.title,
+        },
+        type: "Feature",
+      })),
+      type: "FeatureCollection",
+    }),
+    [memories],
+  );
+
+  useEffect(() => {
+    memoriesRef.current = memories;
+  }, [memories]);
+
+  useEffect(() => {
+    onMemorySelectRef.current = onMemorySelect;
+  }, [onMemorySelect]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) {
@@ -88,9 +123,126 @@ function MapboxMemoryMap({
       "bottom-right",
     );
 
+    const addMemoryLayers = () => {
+      if (!mapRef.current || mapRef.current.getSource(memorySourceId)) {
+        return;
+      }
+
+      mapRef.current.addSource(memorySourceId, {
+        cluster: true,
+        clusterMaxZoom: 17,
+        clusterRadius: 48,
+        data: memoryData,
+        type: "geojson",
+      });
+
+      mapRef.current.addLayer({
+        filter: ["has", "point_count"],
+        id: memoryClusterLayerId,
+        paint: {
+          "circle-color": [
+            "step",
+            ["get", "point_count"],
+            "#f7c9c8",
+            10,
+            "#f4a4a4",
+            50,
+            "#ee7979",
+          ],
+          "circle-radius": ["step", ["get", "point_count"], 15, 10, 19, 50, 24],
+          "circle-stroke-color": "#20262f",
+          "circle-stroke-width": 1,
+        },
+        source: memorySourceId,
+        type: "circle",
+      });
+
+      mapRef.current.addLayer({
+        filter: ["has", "point_count"],
+        id: memoryClusterCountLayerId,
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+          "text-size": 11,
+        },
+        paint: {
+          "text-color": "#20262f",
+        },
+        source: memorySourceId,
+        type: "symbol",
+      });
+
+      mapRef.current.addLayer({
+        filter: ["!", ["has", "point_count"]],
+        id: memoryPointLayerId,
+        paint: {
+          "circle-color": [
+            "case",
+            ["==", ["get", "privacy"], "private"],
+            "#7a7ecb",
+            "#f7c9c8",
+          ],
+          "circle-radius": 8,
+          "circle-stroke-color": "#20262f",
+          "circle-stroke-width": 2,
+        },
+        source: memorySourceId,
+        type: "circle",
+      });
+
+      mapRef.current.on("click", memoryClusterLayerId, (event) => {
+        const feature = event.features?.[0];
+        const coordinates = (feature?.geometry as GeoJSON.Point | undefined)
+          ?.coordinates;
+
+        if (!coordinates) {
+          return;
+        }
+
+        mapRef.current?.easeTo({
+          center: coordinates as [number, number],
+          duration: 650,
+          zoom: Math.min(18, (mapRef.current?.getZoom() ?? 1) + 2),
+        });
+      });
+
+      mapRef.current.on("click", memoryPointLayerId, (event) => {
+        const memoryId = String(event.features?.[0]?.properties?.memoryId ?? "");
+        const memory = memoriesRef.current.find((item) => item.id === memoryId);
+
+        if (memory) {
+          onMemorySelectRef.current(memory);
+        }
+      });
+
+      mapRef.current.on("mouseenter", memoryClusterLayerId, () => {
+        if (mapRef.current) {
+          mapRef.current.getCanvas().style.cursor = "pointer";
+        }
+      });
+      mapRef.current.on("mouseleave", memoryClusterLayerId, () => {
+        if (mapRef.current) {
+          mapRef.current.getCanvas().style.cursor = "";
+        }
+      });
+      mapRef.current.on("mouseenter", memoryPointLayerId, () => {
+        if (mapRef.current) {
+          mapRef.current.getCanvas().style.cursor = "pointer";
+        }
+      });
+      mapRef.current.on("mouseleave", memoryPointLayerId, () => {
+        if (mapRef.current) {
+          mapRef.current.getCanvas().style.cursor = "";
+        }
+      });
+    };
+
+    mapRef.current.once("load", () => {
+      addMemoryLayers();
+      setMapReady(true);
+    });
+
     return () => {
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
       searchMarkerRef.current?.remove();
       searchMarkerRef.current = null;
       mapRef.current?.remove();
@@ -99,26 +251,15 @@ function MapboxMemoryMap({
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current) {
+    if (!mapRef.current || !mapReady) {
       return;
     }
 
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current = memories.map((memory) => {
-      const element = document.createElement("button");
-      element.type = "button";
-      element.setAttribute("aria-label", `Open ${memory.title}`);
-      element.className =
-        "flex h-7 w-7 items-center justify-center rounded-full border border-[#20262f] text-[11px] font-bold shadow-[0_6px_18px_rgba(32,38,47,0.22)] transition hover:scale-110";
-      element.style.backgroundColor = memory.privacy === "public" ? "#f7c9c8" : "#7a7ecb";
-      element.style.color = memory.privacy === "public" ? "#20262f" : "#ffffff";
-      element.textContent = "1";
-      element.addEventListener("click", () => onMemorySelect(memory));
+    const source = mapRef.current.getSource(memorySourceId) as
+      | mapboxgl.GeoJSONSource
+      | undefined;
 
-      return new mapboxgl.Marker({ element })
-        .setLngLat([memory.longitude, memory.latitude])
-        .addTo(mapRef.current as mapboxgl.Map);
-    });
+    source?.setData(memoryData);
 
     if (memories.length > 0 && !searchTarget) {
       const bounds = new mapboxgl.LngLatBounds();
@@ -129,7 +270,7 @@ function MapboxMemoryMap({
         padding: 80,
       });
     }
-  }, [memories, onMemorySelect, searchTarget]);
+  }, [memories, memoryData, mapReady, searchTarget]);
 
   useEffect(() => {
     if (!mapRef.current) {

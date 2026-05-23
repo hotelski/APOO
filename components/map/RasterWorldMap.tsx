@@ -26,14 +26,110 @@ type RasterWorldMapMarker = {
 type RasterWorldMapProps = {
   ariaLabel?: string;
   className?: string;
+  clusterMarkers?: boolean;
   markers?: RasterWorldMapMarker[];
   onMapClick?: (location: { latitude: number; longitude: number }) => void;
   searchTarget?: MapLocationTarget | null;
 };
 
+type RasterMarkerCluster = {
+  count: number;
+  id: string;
+  latitude: number;
+  longitude: number;
+  markers: RasterWorldMapMarker[];
+  privacy?: MemoryPrivacy;
+  title?: string;
+};
+
+const clusterPixelRadius = 44;
+const unclusteredZoom = 18;
+
+function formatClusterCount(count: number) {
+  if (count >= 1000) {
+    return `${Number((count / 1000).toFixed(1))}k`;
+  }
+
+  return String(count);
+}
+
+function markerHtml(count: number, isPrivate: boolean) {
+  if (count <= 1) {
+    return `<span class="block h-5 w-5 rounded-full border-2 border-[#20262f] ${isPrivate ? "bg-[#7a7ecb]" : "bg-[#f7c9c8]"} shadow-[0_6px_18px_rgba(32,38,47,0.22)] transition"></span>`;
+  }
+
+  const sizeClass =
+    count >= 50 ? "h-11 w-11 text-[12px]" : count >= 10 ? "h-9 w-9 text-[11px]" : "h-8 w-8 text-[11px]";
+
+  return `<span class="flex ${sizeClass} items-center justify-center rounded-full border border-[#20262f] ${isPrivate ? "bg-[#7a7ecb] text-white" : "bg-[#f7a1a1] text-[#20262f]"} font-bold shadow-[0_8px_22px_rgba(32,38,47,0.24)] transition">${formatClusterCount(count)}</span>`;
+}
+
+function buildRasterClusters(
+  leaflet: LeafletModule,
+  map: LeafletMap,
+  markers: RasterWorldMapMarker[],
+  clusterMarkers: boolean,
+): RasterMarkerCluster[] {
+  if (!clusterMarkers || map.getZoom() >= unclusteredZoom) {
+    return markers.map((marker) => ({
+      count: 1,
+      id: marker.id,
+      latitude: marker.latitude,
+      longitude: marker.longitude,
+      markers: [marker],
+      privacy: marker.privacy,
+      title: marker.title,
+    }));
+  }
+
+  const zoom = map.getZoom();
+  const clusters: Array<RasterMarkerCluster & { pointX: number; pointY: number }> = [];
+
+  for (const marker of markers) {
+    const point = map.project(leaflet.latLng(marker.latitude, marker.longitude), zoom);
+    const cluster = clusters.find((candidate) => {
+      const distanceX = candidate.pointX - point.x;
+      const distanceY = candidate.pointY - point.y;
+
+      return Math.sqrt(distanceX * distanceX + distanceY * distanceY) <= clusterPixelRadius;
+    });
+
+    if (cluster) {
+      const nextCount = cluster.count + 1;
+      cluster.latitude = (cluster.latitude * cluster.count + marker.latitude) / nextCount;
+      cluster.longitude = (cluster.longitude * cluster.count + marker.longitude) / nextCount;
+      cluster.pointX = (cluster.pointX * cluster.count + point.x) / nextCount;
+      cluster.pointY = (cluster.pointY * cluster.count + point.y) / nextCount;
+      cluster.count = nextCount;
+      cluster.id = `${cluster.id}-${marker.id}`;
+      cluster.markers.push(marker);
+      cluster.privacy =
+        cluster.privacy === "private" || marker.privacy === "private"
+          ? "private"
+          : marker.privacy;
+      cluster.title = `${nextCount} memories`;
+    } else {
+      clusters.push({
+        count: 1,
+        id: marker.id,
+        latitude: marker.latitude,
+        longitude: marker.longitude,
+        markers: [marker],
+        pointX: point.x,
+        pointY: point.y,
+        privacy: marker.privacy,
+        title: marker.title,
+      });
+    }
+  }
+
+  return clusters;
+}
+
 export function RasterWorldMap({
   ariaLabel = "World map",
   className,
+  clusterMarkers = false,
   markers = [],
   onMapClick,
   searchTarget,
@@ -44,6 +140,7 @@ export function RasterWorldMap({
   const searchMarkerRef = useRef<LeafletMarker | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const [leaflet, setLeaflet] = useState<LeafletModule | null>(null);
+  const [mapViewVersion, setMapViewVersion] = useState(0);
 
   useEffect(() => {
     onMapClickRef.current = onMapClick;
@@ -118,31 +215,73 @@ export function RasterWorldMap({
     }
 
     const map = mapRef.current;
+    const rerenderMarkers = () => setMapViewVersion((version) => version + 1);
+
+    map.on("zoomend", rerenderMarkers);
+    map.on("moveend", rerenderMarkers);
+
+    return () => {
+      map.off("zoomend", rerenderMarkers);
+      map.off("moveend", rerenderMarkers);
+    };
+  }, [leaflet]);
+
+  useEffect(() => {
+    if (!leaflet || !mapRef.current) {
+      return;
+    }
+
+    const map = mapRef.current;
+    const clusters = buildRasterClusters(leaflet, map, markers, clusterMarkers);
 
     markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current = markers.map((marker) => {
-      const isPrivate = marker.privacy === "private";
+    markersRef.current = clusters.map((cluster) => {
+      const isPrivate = cluster.privacy === "private";
+      const size = cluster.count <= 1 ? 20 : cluster.count >= 50 ? 44 : cluster.count >= 10 ? 36 : 32;
       const icon: DivIcon = leaflet.divIcon({
         className: "",
-        html: `<span class="flex h-7 w-7 items-center justify-center rounded-full border border-[#20262f] text-[11px] font-bold shadow-[0_6px_18px_rgba(32,38,47,0.22)] transition ${isPrivate ? "bg-[#7a7ecb] text-white" : "bg-[#f7c9c8] text-[#20262f]"}">${marker.label ?? "1"}</span>`,
-        iconAnchor: [14, 14],
-        iconSize: [28, 28],
+        html: markerHtml(cluster.count, isPrivate),
+        iconAnchor: [size / 2, size / 2],
+        iconSize: [size, size],
       });
 
       const leafletMarker = leaflet
-        .marker([marker.latitude, marker.longitude], {
+        .marker([cluster.latitude, cluster.longitude], {
           icon,
-          keyboard: Boolean(marker.onClick),
-          title: marker.title,
+          keyboard: cluster.markers.some((marker) => Boolean(marker.onClick)),
+          title: cluster.title,
         })
         .addTo(map);
 
-      if (marker.onClick) {
-        leafletMarker.on("click", marker.onClick);
+      const [firstMarker] = cluster.markers;
+
+      if (cluster.count > 1) {
+        leafletMarker.on("click", () => {
+          const nextZoom = Math.min(unclusteredZoom, map.getZoom() + 2);
+
+          if (map.getZoom() >= unclusteredZoom - 0.25) {
+            firstMarker?.onClick?.();
+            return;
+          }
+
+          map.flyTo([cluster.latitude, cluster.longitude], nextZoom, {
+            duration: 0.6,
+          });
+        });
+      } else if (firstMarker?.onClick) {
+        leafletMarker.on("click", firstMarker.onClick);
       }
 
       return leafletMarker;
     });
+  }, [clusterMarkers, leaflet, markers, mapViewVersion]);
+
+  useEffect(() => {
+    if (!leaflet || !mapRef.current) {
+      return;
+    }
+
+    const map = mapRef.current;
 
     if (markers.length === 0) {
       return;
