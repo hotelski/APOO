@@ -3,15 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Save } from "lucide-react";
-import { signOut } from "firebase/auth";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { auth } from "@/lib/firebase";
 import { updateUserDisplayName, userDisplayName } from "@/lib/users";
 
 export default function SettingsPage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, logout, refreshProfile } = useAuth();
   const router = useRouter();
   const [displayName, setDisplayName] = useState(
     profile?.displayName || userDisplayName(user),
@@ -43,7 +41,7 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    await logout();
     router.replace("/");
   };
 

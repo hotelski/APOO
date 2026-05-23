@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "firebase/auth";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureUserProfile } from "@/lib/users";
 import type { UserProfile } from "@/types";
@@ -19,6 +19,7 @@ type AuthContextValue = {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
+  logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
@@ -37,6 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const nextProfile = await ensureUserProfile(auth.currentUser);
     setProfile(nextProfile);
+  }, []);
+
+  const logout = useCallback(async () => {
+    await signOut(auth);
   }, []);
 
   useEffect(() => {
@@ -76,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, profile, loading, refreshProfile }),
-    [user, profile, loading, refreshProfile],
+    () => ({ user, profile, loading, logout, refreshProfile }),
+    [user, profile, loading, logout, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

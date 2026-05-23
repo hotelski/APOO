@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -11,11 +11,12 @@ import {
 import { ArrowRight, UserRound } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { createUserProfile } from "@/lib/users";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 type AuthFormProps = {
-  mode: "login" | "signup";
+  mode: "login" | "register";
 };
 
 export function AuthForm({ mode }: AuthFormProps) {
@@ -23,19 +24,32 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/map";
-  const isSignup = mode === "signup";
+  const nextParam = searchParams.get("next");
+  const next =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : "/map";
+  const isRegister = mode === "register";
+
+  useEffect(() => {
+    if (!loading && user && !submitted) {
+      router.replace("/map");
+    }
+  }, [loading, router, submitted, user]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+    setSubmitted(false);
     setSubmitting(true);
 
     try {
-      if (isSignup) {
+      if (isRegister) {
         const credential = await createUserWithEmailAndPassword(
           auth,
           email.trim(),
@@ -49,8 +63,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
 
+      setSubmitted(true);
       router.replace(next);
     } catch (authError) {
+      setSubmitted(false);
       setError(
         authError instanceof Error
           ? authError.message.replace("Firebase: ", "")
@@ -60,6 +76,17 @@ export function AuthForm({ mode }: AuthFormProps) {
       setSubmitting(false);
     }
   };
+
+  if (loading || (user && !submitted)) {
+    return (
+      <div className="mx-auto w-full max-w-md rounded-lg border border-white/15 bg-night/70 p-6 text-center text-ivory shadow-nocturne backdrop-blur-xl">
+        <p className="font-serif text-sm font-semibold uppercase tracking-[0.28em] text-ivory">
+          APOO
+        </p>
+        <p className="mt-4 text-sm text-ivory/55">Taking you to your map...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-md rounded-lg border border-white/15 bg-night/70 p-6 text-ivory shadow-nocturne backdrop-blur-xl">
@@ -71,17 +98,17 @@ export function AuthForm({ mode }: AuthFormProps) {
           APOO
         </Link>
         <h1 className="font-serif text-3xl font-semibold uppercase tracking-[0.18em] text-ivory">
-          {isSignup ? "Create your place" : "Welcome back"}
+          {isRegister ? "Create your place" : "Welcome back"}
         </h1>
         <p className="mt-4 text-sm leading-6 text-ivory/60">
-          {isSignup
+          {isRegister
             ? "Save the places that hold your stories."
             : "Return to the map where your memories live."}
         </p>
       </div>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
-        {isSignup ? (
+        {isRegister ? (
           <Input
             autoComplete="name"
             label="Display name"
@@ -104,8 +131,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         />
 
         <Input
-          autoComplete={isSignup ? "new-password" : "current-password"}
-          helper={isSignup ? "Use at least 6 characters." : undefined}
+          autoComplete={isRegister ? "new-password" : "current-password"}
+          helper={isRegister ? "Use at least 6 characters." : undefined}
           label="Password"
           minLength={6}
           name="password"
@@ -123,20 +150,20 @@ export function AuthForm({ mode }: AuthFormProps) {
         <Button
           className="w-full"
           disabled={submitting}
-          icon={isSignup ? <UserRound className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+          icon={isRegister ? <UserRound className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
           type="submit"
         >
-          {submitting ? "Please wait..." : isSignup ? "Sign up" : "Log in"}
+          {submitting ? "Please wait..." : isRegister ? "Register" : "Log in"}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-ivory/50">
-        {isSignup ? "Already have an account?" : "New to APOO?"}{" "}
+        {isRegister ? "Already have an account?" : "New to APOO?"}{" "}
         <Link
           className="font-semibold text-ivory hover:text-ivory/80"
-          href={isSignup ? "/login" : "/signup"}
+          href={isRegister ? "/login" : "/register"}
         >
-          {isSignup ? "Log in" : "Create one"}
+          {isRegister ? "Log in" : "Create one"}
         </Link>
       </p>
     </div>

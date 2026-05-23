@@ -20,7 +20,7 @@ export default function LandingPage() {
             </Link>
             <Link
               className="rounded-full border border-ivory/70 px-5 py-3 transition hover:bg-ivory hover:text-night"
-              href="/signup"
+              href="/register"
             >
               SIGN UP
             </Link>
@@ -78,7 +78,7 @@ export default function LandingPage() {
           </p>
           <Link
             className="mt-10 inline-flex rounded-full border border-ivory/45 px-8 py-3 text-xs font-bold uppercase tracking-[0.26em] text-ivory/75 transition hover:bg-ivory hover:text-night"
-            href="/signup"
+            href="/register"
           >
             Begin
           </Link>
