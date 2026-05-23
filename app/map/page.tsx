@@ -185,32 +185,32 @@ export default function MapPage() {
   return (
     <main className="relative h-[100svh] overflow-hidden bg-[#d6e7f0] text-[#20262f]">
       <MemoryMap
-        className="absolute inset-0 h-full min-h-0 rounded-none"
+        className="absolute inset-0 z-0 h-full min-h-0 rounded-none"
         memories={filteredMemories}
         onMemorySelect={handleSelect}
       />
 
-      <aside className="absolute inset-y-0 left-0 z-20 hidden w-56 md:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 md:block">
         {sidebar}
       </aside>
 
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/35 transition md:hidden",
+          "fixed inset-0 z-[90] bg-black/35 transition md:hidden",
           mobileNavOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={() => setMobileNavOpen(false)}
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] transition-transform duration-300 md:hidden",
+          "fixed inset-y-0 left-0 z-[100] w-72 max-w-[86vw] transition-transform duration-300 md:hidden",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         {sidebar}
       </aside>
 
-      <div className="absolute left-3 right-3 top-3 z-30 md:left-60 md:right-6">
+      <div className="fixed left-3 right-3 top-3 z-50 md:left-60 md:right-6">
         <div className="mx-auto flex max-w-2xl items-center gap-2">
           <button
             aria-label="Open menu"
@@ -234,7 +234,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      <div className="absolute bottom-5 left-1/2 z-30 w-[min(92vw,24rem)] -translate-x-1/2 md:left-[calc(50%+7rem)]">
+      <div className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,24rem)] -translate-x-1/2 md:left-[calc(50%+7rem)]">
         <div className="flex items-center justify-between gap-3 rounded-[1.75rem] bg-[#20262f] px-4 py-3 text-white shadow-2xl">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm font-bold">
@@ -259,7 +259,7 @@ export default function MapPage() {
       </div>
 
       {!loading && query && filteredMemories.length === 0 ? (
-        <div className="absolute left-3 right-3 top-20 z-30 mx-auto max-w-md rounded-lg bg-white px-4 py-3 text-center text-sm font-semibold text-[#20262f] shadow-xl md:left-60">
+        <div className="fixed left-3 right-3 top-20 z-50 mx-auto max-w-md rounded-lg bg-white px-4 py-3 text-center text-sm font-semibold text-[#20262f] shadow-xl md:left-60">
           No memories match that search.
         </div>
       ) : null}

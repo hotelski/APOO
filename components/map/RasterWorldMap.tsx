@@ -70,9 +70,11 @@ export function RasterWorldMap({
         scrollWheelZoom: true,
         worldCopyJump: true,
         zoom: Math.max(2, defaultMapZoom),
-        zoomControl: true,
+        zoomControl: false,
         zoomSnap: 0.25,
       });
+
+      L.control.zoom({ position: "bottomright" }).addTo(map);
 
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", {
         attribution:

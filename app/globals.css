@@ -67,6 +67,11 @@ a {
   font-size: 10px;
 }
 
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 20 !important;
+}
+
 .apoo-ambient {
   position: relative;
   overflow: hidden;
