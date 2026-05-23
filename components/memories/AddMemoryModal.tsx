@@ -134,8 +134,8 @@ export function AddMemoryModal({ onClose, onCreated, open }: AddMemoryModalProps
           />
 
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-ink">Photo</span>
-            <div className="rounded-lg border border-dashed border-ink/15 bg-white p-3">
+            <span className="mb-2 block text-sm font-semibold text-current">Photo</span>
+            <div className="rounded-lg border border-dashed border-white/20 bg-white/[0.05] p-3">
               {previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -144,14 +144,14 @@ export function AddMemoryModal({ onClose, onCreated, open }: AddMemoryModalProps
                   src={previewUrl}
                 />
               ) : (
-                <div className="mb-3 flex aspect-[16/10] items-center justify-center rounded-lg bg-paper text-sm text-ink/45">
+                <div className="mb-3 flex aspect-[16/10] items-center justify-center rounded-lg bg-white/[0.04] text-sm text-ivory/45">
                   <Camera className="mr-2 h-4 w-4" />
                   Choose a photo
                 </div>
               )}
               <input
                 accept="image/*"
-                className="block w-full text-sm text-ink/70 file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+                className="block w-full text-sm text-ivory/60 file:mr-3 file:rounded-lg file:border file:border-white/15 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-ivory"
                 onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
                 type="file"
               />
@@ -159,8 +159,8 @@ export function AddMemoryModal({ onClose, onCreated, open }: AddMemoryModalProps
           </label>
 
           <div>
-            <span className="mb-2 block text-sm font-semibold text-ink">Privacy</span>
-            <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-1">
+            <span className="mb-2 block text-sm font-semibold text-current">Privacy</span>
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-white/[0.05] p-1">
               {[
                 { value: "private" as const, label: "Private", icon: Lock },
                 { value: "public" as const, label: "Public", icon: Eye },
@@ -171,8 +171,8 @@ export function AddMemoryModal({ onClose, onCreated, open }: AddMemoryModalProps
                 return (
                   <button
                     className={cn(
-                      "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold capitalize text-ink/60 transition",
-                      active && "bg-ink text-white shadow-sm",
+                      "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold capitalize text-ivory/55 transition",
+                      active && "bg-ivory text-night shadow-sm",
                     )}
                     key={option.value}
                     onClick={() => setPrivacy(option.value)}
@@ -189,8 +189,8 @@ export function AddMemoryModal({ onClose, onCreated, open }: AddMemoryModalProps
 
         <div className="space-y-4">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
-              <MapPin className="h-4 w-4 text-clay" />
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-current">
+              <MapPin className="h-4 w-4 text-ivory/60" />
               Location
             </div>
             <LocationPickerMap

@@ -18,16 +18,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
 
   return (
-    <div className="min-h-screen bg-paper pb-20 md:pb-0">
-      <header className="sticky top-0 z-40 border-b border-ink/10 bg-paper/90 backdrop-blur">
+    <div className="min-h-screen bg-night pb-20 text-ivory md:pb-0">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-night/85 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link className="flex items-center gap-3" href="/map">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm font-bold text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 font-serif text-sm font-bold text-ivory">
               A
             </span>
             <span>
-              <span className="block text-sm font-bold leading-none text-ink">APOO</span>
-              <span className="block text-xs text-ink/55">Your memories, mapped.</span>
+              <span className="block font-serif text-sm font-bold uppercase leading-none tracking-[0.28em] text-ivory">
+                APOO
+              </span>
+              <span className="block text-xs text-ivory/50">Your memories, mapped.</span>
             </span>
           </Link>
 
@@ -39,8 +41,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               return (
                 <Link
                   className={cn(
-                    "inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-ink/65 transition hover:bg-white hover:text-ink",
-                    active && "bg-white text-ink shadow-sm",
+                    "inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-ivory/55 transition hover:bg-white/[0.08] hover:text-ivory",
+                    active && "bg-white/10 text-ivory shadow-sm",
                   )}
                   href={item.href}
                   key={item.href}
@@ -54,10 +56,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="hidden items-center gap-3 md:flex">
             <div className="text-right">
-              <p className="text-sm font-semibold text-ink">
+              <p className="text-sm font-semibold text-ivory">
                 {profile?.displayName || userDisplayName(user)}
               </p>
-              <p className="text-xs text-ink/50">{user?.email}</p>
+              <p className="text-xs text-ivory/40">{user?.email}</p>
             </div>
           </div>
         </div>
@@ -65,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {children}
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-ink/10 bg-paper/95 px-2 py-2 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-night/95 px-2 py-2 backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-3 gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -73,9 +75,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             return (
               <Link
-                className={cn(
-                  "flex min-h-12 flex-col items-center justify-center rounded-lg text-xs font-semibold text-ink/55 transition",
-                  active && "bg-white text-ink shadow-sm",
+                  className={cn(
+                  "flex min-h-12 flex-col items-center justify-center rounded-lg text-xs font-semibold text-ivory/50 transition",
+                  active && "bg-white/10 text-ivory shadow-sm",
                 )}
                 href={item.href}
                 key={item.href}

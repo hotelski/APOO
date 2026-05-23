@@ -17,16 +17,16 @@ export function Textarea({
 
   return (
     <label className="block" htmlFor={inputId}>
-      <span className="mb-2 block text-sm font-semibold text-ink">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-current">{label}</span>
       <textarea
         id={inputId}
         className={cn(
-          "min-h-28 w-full resize-y rounded-lg border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-clay focus:ring-4 focus:ring-clay/15",
+          "min-h-28 w-full resize-y rounded-lg border border-white/15 bg-white/[0.92] px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-ivory focus:ring-4 focus:ring-white/10",
           className,
         )}
         {...props}
       />
-      {helper ? <span className="mt-2 block text-xs text-ink/55">{helper}</span> : null}
+      {helper ? <span className="mt-2 block text-xs text-current opacity-55">{helper}</span> : null}
     </label>
   );
 }

@@ -26,20 +26,22 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end bg-ink/45 p-0 backdrop-blur-sm sm:items-center sm:p-6">
+    <div className="fixed inset-0 z-[80] flex items-end bg-black/64 p-0 backdrop-blur-sm sm:items-center sm:p-6">
       <section
         aria-modal="true"
         className={cn(
-          "max-h-[92svh] w-full overflow-y-auto rounded-t-lg bg-paper shadow-soft sm:mx-auto sm:rounded-lg",
+          "max-h-[92svh] w-full overflow-y-auto rounded-t-lg border border-white/10 bg-night text-ivory shadow-nocturne sm:mx-auto sm:rounded-lg",
           wide ? "sm:max-w-4xl" : "sm:max-w-xl",
         )}
         role="dialog"
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-ink/10 bg-paper/95 px-5 py-4 backdrop-blur">
+        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-white/10 bg-night/90 px-5 py-4 backdrop-blur">
           <div>
-            <h2 className="text-xl font-semibold text-ink">{title}</h2>
+            <h2 className="font-serif text-xl font-semibold uppercase tracking-[0.18em] text-ivory">
+              {title}
+            </h2>
             {description ? (
-              <p className="mt-1 text-sm text-ink/60">{description}</p>
+              <p className="mt-2 text-sm text-ivory/55">{description}</p>
             ) : null}
           </div>
           <Button

@@ -26,7 +26,7 @@ export function MemoryMap({ memories, onMemorySelect }: MemoryMapProps) {
     mapRef.current = new mapboxgl.Map({
       center: defaultMapCenter,
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+        style: "mapbox://styles/mapbox/dark-v11",
       zoom: defaultMapZoom,
     });
 
@@ -51,9 +51,9 @@ export function MemoryMap({ memories, onMemorySelect }: MemoryMapProps) {
       element.type = "button";
       element.setAttribute("aria-label", `Open ${memory.title}`);
       element.className =
-        "flex h-9 w-9 items-center justify-center rounded-full border-2 border-white shadow-lift transition hover:scale-105";
-      element.style.backgroundColor = memory.privacy === "public" ? "#b8614b" : "#2d6f73";
-      element.style.color = "#ffffff";
+        "flex h-9 w-9 items-center justify-center rounded-full border border-white/80 font-serif text-sm shadow-lift transition hover:scale-105";
+      element.style.backgroundColor = memory.privacy === "public" ? "#f3eee6" : "#222733";
+      element.style.color = memory.privacy === "public" ? "#171b24" : "#f3eee6";
       element.textContent = "A";
       element.addEventListener("click", () => onMemorySelect(memory));
 
@@ -75,11 +75,13 @@ export function MemoryMap({ memories, onMemorySelect }: MemoryMapProps) {
 
   if (!mapboxToken) {
     return (
-      <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-ink/20 bg-white/70 p-6 text-center">
+      <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-white/20 bg-white/[0.04] p-6 text-center text-ivory">
         <div className="max-w-sm">
-          <MapPin className="mx-auto h-9 w-9 text-clay" />
-          <h2 className="mt-4 text-lg font-semibold text-ink">Mapbox token needed</h2>
-          <p className="mt-2 text-sm leading-6 text-ink/60">
+          <MapPin className="mx-auto h-9 w-9 text-ivory/70" />
+          <h2 className="mt-4 font-serif text-lg font-semibold text-ivory">
+            Mapbox token needed
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-ivory/55">
             Add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to your local .env file to render
             the memory map.
           </p>

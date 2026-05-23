@@ -34,7 +34,7 @@ export function LocationPickerMap({
     mapRef.current = new mapboxgl.Map({
       center: [longitude, latitude],
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/mapbox/dark-v11",
       zoom: 12,
     });
 
@@ -78,7 +78,7 @@ export function LocationPickerMap({
 
   if (!mapboxToken) {
     return (
-      <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-ink/20 bg-white/70 p-5 text-center text-sm text-ink/60">
+      <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-white/20 bg-white/[0.04] p-5 text-center text-sm text-ivory/55">
         Add a Mapbox token to use the visual picker, or enter coordinates below.
       </div>
     );

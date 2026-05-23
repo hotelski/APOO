@@ -48,15 +48,17 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-3xl px-4 py-6 text-ivory sm:px-6 lg:px-8">
       <div className="mb-6">
-        <p className="text-sm font-semibold text-clay">Settings</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-normal text-ink">
+        <p className="text-xs font-semibold uppercase tracking-[0.34em] text-ivory/40">
+          Settings
+        </p>
+        <h1 className="mt-2 font-serif text-3xl font-semibold tracking-[0.08em] text-ivory">
           Account basics
         </h1>
       </div>
 
-      <section className="rounded-lg border border-ink/10 bg-white p-5 shadow-soft">
+      <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-nocturne backdrop-blur">
         <form className="space-y-5" onSubmit={handleSave}>
           <Input
             label="Display name"
@@ -74,7 +76,7 @@ export default function SettingsPage() {
           />
 
           {message ? (
-            <p className="rounded-lg bg-tide/10 px-4 py-3 text-sm text-tide">{message}</p>
+            <p className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-ivory/70">{message}</p>
           ) : null}
           {error ? (
             <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
@@ -100,9 +102,9 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      <section className="mt-5 rounded-lg border border-ink/10 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-ink">Privacy defaults</h2>
-        <p className="mt-2 text-sm leading-6 text-ink/60">
+      <section className="mt-5 rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm">
+        <h2 className="font-serif text-lg font-semibold text-ivory">Privacy defaults</h2>
+        <p className="mt-2 text-sm leading-6 text-ivory/55">
           New memories start as private. You can mark individual memories public
           when you want them to appear for other APOO members.
         </p>

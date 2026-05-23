@@ -70,8 +70,8 @@ export function MemoryDetailPage({ memoryId }: { memoryId: string }) {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-lg bg-white p-8 text-sm text-ink/60 shadow-sm">
+      <main className="mx-auto max-w-5xl px-4 py-8 text-ivory sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-white/10 bg-white/[0.06] p-8 text-sm text-ivory/55 shadow-sm">
           Loading memory...
         </div>
       </main>
@@ -80,13 +80,13 @@ export function MemoryDetailPage({ memoryId }: { memoryId: string }) {
 
   if (!memory) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-lg bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold text-ink">Memory unavailable</h1>
-          <p className="mt-2 text-sm text-ink/60">
+      <main className="mx-auto max-w-5xl px-4 py-8 text-ivory sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-white/10 bg-white/[0.06] p-8 shadow-sm">
+          <h1 className="font-serif text-xl font-semibold text-ivory">Memory unavailable</h1>
+          <p className="mt-2 text-sm text-ivory/55">
             This memory may have been deleted or is not visible to you.
           </p>
-          <Link className="mt-5 inline-flex text-sm font-semibold text-clay" href="/map">
+          <Link className="mt-5 inline-flex text-sm font-semibold text-ivory" href="/map">
             Back to map
           </Link>
         </div>
@@ -100,13 +100,13 @@ export function MemoryDetailPage({ memoryId }: { memoryId: string }) {
 
   if (!isVisible) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-lg bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold text-ink">Private memory</h1>
-          <p className="mt-2 text-sm text-ink/60">
+      <main className="mx-auto max-w-5xl px-4 py-8 text-ivory sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-white/10 bg-white/[0.06] p-8 shadow-sm">
+          <h1 className="font-serif text-xl font-semibold text-ivory">Private memory</h1>
+          <p className="mt-2 text-sm text-ivory/55">
             Only the owner can view this memory.
           </p>
-          <Link className="mt-5 inline-flex text-sm font-semibold text-clay" href="/map">
+          <Link className="mt-5 inline-flex text-sm font-semibold text-ivory" href="/map">
             Back to map
           </Link>
         </div>
@@ -115,21 +115,21 @@ export function MemoryDetailPage({ memoryId }: { memoryId: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-5xl px-4 py-8 text-ivory sm:px-6 lg:px-8">
       <Link
-        className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-ink/65 hover:text-ink"
+        className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-ivory/55 hover:text-ivory"
         href="/map"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to map
       </Link>
 
-      <article className="overflow-hidden rounded-lg border border-ink/10 bg-white shadow-soft">
+      <article className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.06] shadow-nocturne backdrop-blur">
         {memory.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img alt="" className="max-h-[520px] w-full object-cover" src={memory.imageUrl} />
         ) : (
-          <div className="flex min-h-72 items-center justify-center bg-gradient-to-br from-blush/40 via-white to-moss/20 text-ink/45">
+          <div className="flex min-h-72 items-center justify-center bg-dusk text-ivory/35">
             No photo attached
           </div>
         )}
@@ -137,27 +137,27 @@ export function MemoryDetailPage({ memoryId }: { memoryId: string }) {
         <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_18rem]">
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-paper px-3 py-1 text-xs font-semibold capitalize text-ink/65">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-xs font-semibold capitalize text-ivory/60">
                 <PrivacyIcon className="h-3.5 w-3.5" />
                 {memory.privacy}
               </span>
-              <span className="text-sm text-ink/45">{formatTimestamp(memory.createdAt)}</span>
+              <span className="text-sm text-ivory/35">{formatTimestamp(memory.createdAt)}</span>
             </div>
-            <h1 className="text-3xl font-semibold tracking-normal text-ink">
+            <h1 className="font-serif text-3xl font-semibold tracking-[0.08em] text-ivory">
               {memory.title}
             </h1>
-            <p className="mt-5 whitespace-pre-line text-base leading-8 text-ink/72">
+            <p className="mt-5 whitespace-pre-line text-base leading-8 text-ivory/65">
               {memory.description || "No description added yet."}
             </p>
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-lg bg-paper p-4">
-              <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-                <MapPin className="h-4 w-4 text-clay" />
+            <div className="rounded-lg border border-white/10 bg-white/[0.05] p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-ivory">
+                <MapPin className="h-4 w-4 text-ivory/60" />
                 Coordinates
               </p>
-              <p className="mt-2 text-sm text-ink/60">
+              <p className="mt-2 text-sm text-ivory/55">
                 {memory.latitude.toFixed(5)}, {memory.longitude.toFixed(5)}
               </p>
             </div>

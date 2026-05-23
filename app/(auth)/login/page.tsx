@@ -3,7 +3,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
+    <main className="apoo-ambient flex min-h-screen items-center justify-center px-4 py-12">
       <Suspense fallback={<div className="text-sm text-ink/60">Loading...</div>}>
         <AuthForm mode="login" />
       </Suspense>

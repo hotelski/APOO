@@ -15,9 +15,9 @@ export function MemoryCard({ memory, onDelete }: MemoryCardProps) {
   const PrivacyIcon = memory.privacy === "public" ? Eye : Lock;
 
   return (
-    <article className="overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm">
+    <article className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.06] text-ivory shadow-nocturne backdrop-blur">
       <Link href={`/memories/${memory.id}`}>
-        <div className="aspect-[16/10] bg-ink/5">
+        <div className="aspect-[16/10] bg-white/5">
           {memory.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -26,7 +26,7 @@ export function MemoryCard({ memory, onDelete }: MemoryCardProps) {
               src={memory.imageUrl}
             />
           ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-blush/35 via-white to-moss/20 text-sm font-semibold text-ink/45">
+            <div className="flex h-full items-center justify-center bg-dusk text-sm font-semibold text-ivory/35">
               No photo yet
             </div>
           )}
@@ -35,16 +35,18 @@ export function MemoryCard({ memory, onDelete }: MemoryCardProps) {
 
       <div className="p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-1 rounded-full bg-paper px-2.5 py-1 text-xs font-semibold capitalize text-ink/65">
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-semibold capitalize text-ivory/60">
             <PrivacyIcon className="h-3.5 w-3.5" />
             {memory.privacy}
           </span>
-          <span className="text-xs text-ink/45">{formatTimestamp(memory.createdAt)}</span>
+          <span className="text-xs text-ivory/35">{formatTimestamp(memory.createdAt)}</span>
         </div>
 
         <Link href={`/memories/${memory.id}`}>
-          <h3 className="line-clamp-2 text-base font-semibold text-ink">{memory.title}</h3>
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink/60">
+          <h3 className="line-clamp-2 font-serif text-base font-semibold text-ivory">
+            {memory.title}
+          </h3>
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-ivory/55">
             {memory.description}
           </p>
         </Link>

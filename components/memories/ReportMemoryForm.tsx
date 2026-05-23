@@ -45,7 +45,7 @@ export function ReportMemoryForm({ memoryId }: { memoryId: string }) {
 
   if (submitted) {
     return (
-      <div className="rounded-lg border border-tide/20 bg-tide/10 p-4 text-sm text-tide">
+      <div className="rounded-lg border border-white/10 bg-white/[0.06] p-4 text-sm text-ivory/70">
         Report submitted. Thank you for helping keep public memories respectful.
       </div>
     );

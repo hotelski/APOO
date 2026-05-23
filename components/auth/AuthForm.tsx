@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import { ArrowRight, Mail, UserRound } from "lucide-react";
+import { ArrowRight, UserRound } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { createUserProfile } from "@/lib/users";
 import { Button } from "@/components/ui/Button";
@@ -62,21 +62,18 @@ export function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-md rounded-lg border border-white/60 bg-white/90 p-6 shadow-soft backdrop-blur">
+    <div className="mx-auto w-full max-w-md rounded-lg border border-white/15 bg-night/70 p-6 text-ivory shadow-nocturne backdrop-blur-xl">
       <div className="mb-7">
         <Link
-          className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-clay"
+          className="mb-6 inline-flex font-serif text-xs font-semibold uppercase tracking-[0.34em] text-ivory/70"
           href="/"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-clay text-white">
-            <Mail className="h-4 w-4" />
-          </span>
           APOO
         </Link>
-        <h1 className="text-2xl font-semibold tracking-normal text-ink">
+        <h1 className="font-serif text-3xl font-semibold uppercase tracking-[0.18em] text-ivory">
           {isSignup ? "Create your place" : "Welcome back"}
         </h1>
-        <p className="mt-2 text-sm leading-6 text-ink/65">
+        <p className="mt-4 text-sm leading-6 text-ivory/60">
           {isSignup
             ? "Save the places that hold your stories."
             : "Return to the map where your memories live."}
@@ -133,10 +130,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-ink/60">
+      <p className="mt-6 text-center text-sm text-ivory/50">
         {isSignup ? "Already have an account?" : "New to APOO?"}{" "}
         <Link
-          className="font-semibold text-clay hover:text-clay/80"
+          className="font-semibold text-ivory hover:text-ivory/80"
           href={isSignup ? "/login" : "/signup"}
         >
           {isSignup ? "Log in" : "Create one"}
