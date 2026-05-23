@@ -276,7 +276,7 @@ export default function MapPage() {
               aria-label="Search addresses"
               className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-white/45"
               onChange={(event) => setAddressQuery(event.target.value)}
-              placeholder="Search address in Bulgaria..."
+              placeholder="Search any address..."
               value={addressQuery}
             />
             <button

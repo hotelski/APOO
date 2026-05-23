@@ -2,14 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import {
-  bulgariaLeafletBoundary,
-  bulgariaLeafletBounds,
-  bulgariaLeafletMask,
-  bulgariaLeafletMaxBounds,
-  clampToBulgariaBounds,
-  isWithinBulgariaBounds,
-} from "@/lib/bulgaria";
 import { defaultMapCenter, defaultMapZoom } from "@/lib/mapbox";
 import type { MapLocationTarget, MemoryPrivacy } from "@/types";
 import type {
@@ -73,10 +65,13 @@ export function RasterWorldMap({
 
       const map = L.map(containerRef.current, {
         center: [defaultMapCenter[1], defaultMapCenter[0]],
-        maxBounds: bulgariaLeafletMaxBounds,
-        maxBoundsViscosity: 1,
-        minZoom: 6,
+        maxBounds: [
+          [-85, -220],
+          [85, 220],
+        ],
+        minZoom: 2,
         scrollWheelZoom: true,
+        worldCopyJump: true,
         zoom: Math.max(2, defaultMapZoom),
         zoomControl: false,
         zoomSnap: 0.25,
@@ -91,42 +86,15 @@ export function RasterWorldMap({
         subdomains: ["a", "b", "c", "d"],
       }).addTo(map);
 
-      L.polygon(bulgariaLeafletMask, {
-        className: "apoo-bulgaria-mask",
-        fillColor: "#20262f",
-        fillOpacity: 0.64,
-        fillRule: "evenodd",
-        interactive: false,
-        stroke: false,
-      }).addTo(map);
-
-      L.polyline(bulgariaLeafletBoundary, {
-        className: "apoo-bulgaria-border",
-        color: "#f8fafc",
-        interactive: false,
-        opacity: 0.95,
-        weight: 2.5,
-      }).addTo(map);
-
       map.on("click", (event) => {
-        const location = {
+        onMapClickRef.current?.({
           latitude: event.latlng.lat,
           longitude: event.latlng.lng,
-        };
-
-        if (!isWithinBulgariaBounds(location)) {
-          return;
-        }
-
-        onMapClickRef.current?.(location);
+        });
       });
 
       mapRef.current = map;
       setLeaflet(L);
-      map.fitBounds(bulgariaLeafletBounds, {
-        animate: false,
-        padding: [24, 24],
-      });
 
       window.setTimeout(() => map.invalidateSize(), 0);
     }
@@ -161,9 +129,8 @@ export function RasterWorldMap({
         iconSize: [28, 28],
       });
 
-      const location = clampToBulgariaBounds(marker);
       const leafletMarker = leaflet
-        .marker([location.latitude, location.longitude], {
+        .marker([marker.latitude, marker.longitude], {
           icon,
           keyboard: Boolean(marker.onClick),
           title: marker.title,
@@ -183,14 +150,9 @@ export function RasterWorldMap({
 
     if (markers.length === 1 && onMapClick) {
       const [marker] = markers;
-      const location = clampToBulgariaBounds(marker);
-      map.setView(
-        [location.latitude, location.longitude],
-        Math.max(map.getZoom(), 9),
-        {
-          animate: true,
-        },
-      );
+      map.setView([marker.latitude, marker.longitude], Math.max(map.getZoom(), 4), {
+        animate: true,
+      });
       return;
     }
 
@@ -198,11 +160,10 @@ export function RasterWorldMap({
       return;
     }
 
-    const bounds = markers.map((marker) => {
-      const location = clampToBulgariaBounds(marker);
-
-      return [location.latitude, location.longitude];
-    }) as LatLngBoundsExpression;
+    const bounds = markers.map((marker) => [
+      marker.latitude,
+      marker.longitude,
+    ]) as LatLngBoundsExpression;
 
     map.fitBounds(bounds, {
       animate: true,
@@ -221,7 +182,7 @@ export function RasterWorldMap({
     searchMarkerRef.current?.remove();
     searchMarkerRef.current = null;
 
-    if (!searchTarget || !isWithinBulgariaBounds(searchTarget)) {
+    if (!searchTarget) {
       return;
     }
 

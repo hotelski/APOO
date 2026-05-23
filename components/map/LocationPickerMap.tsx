@@ -3,11 +3,6 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { RasterWorldMap } from "@/components/map/RasterWorldMap";
-import {
-  bulgariaMapboxBounds,
-  clampToBulgariaBounds,
-  isWithinBulgariaBounds,
-} from "@/lib/bulgaria";
 import { mapboxToken } from "@/lib/mapbox";
 
 type LocationPickerMapProps = {
@@ -21,8 +16,6 @@ export function LocationPickerMap({
   longitude,
   onChange,
 }: LocationPickerMapProps) {
-  const safeLocation = clampToBulgariaBounds({ latitude, longitude });
-
   if (!mapboxToken) {
     return (
       <RasterWorldMap
@@ -32,8 +25,8 @@ export function LocationPickerMap({
           {
             id: "selected-location",
             label: "",
-            latitude: safeLocation.latitude,
-            longitude: safeLocation.longitude,
+            latitude,
+            longitude,
             privacy: "private",
             title: "Selected location",
           },
@@ -45,8 +38,8 @@ export function LocationPickerMap({
 
   return (
     <MapboxLocationPickerMap
-      latitude={safeLocation.latitude}
-      longitude={safeLocation.longitude}
+      latitude={latitude}
+      longitude={longitude}
       onChange={onChange}
     />
   );
@@ -76,9 +69,8 @@ function MapboxLocationPickerMap({
     mapRef.current = new mapboxgl.Map({
       center: [longitude, latitude],
       container: containerRef.current,
-      maxBounds: bulgariaMapboxBounds,
       style: "mapbox://styles/mapbox/dark-v11",
-      zoom: 9,
+      zoom: 12,
     });
 
     markerRef.current = new mapboxgl.Marker({
@@ -89,18 +81,9 @@ function MapboxLocationPickerMap({
       .addTo(mapRef.current);
 
     mapRef.current.on("click", (event) => {
-      const location = {
+      onChangeRef.current({
         latitude: event.lngLat.lat,
         longitude: event.lngLat.lng,
-      };
-
-      if (!isWithinBulgariaBounds(location)) {
-        return;
-      }
-
-      onChangeRef.current({
-        latitude: location.latitude,
-        longitude: location.longitude,
       });
     });
 
@@ -108,12 +91,10 @@ function MapboxLocationPickerMap({
       const nextLocation = markerRef.current?.getLngLat();
 
       if (nextLocation) {
-        const location = clampToBulgariaBounds({
+        onChangeRef.current({
           latitude: nextLocation.lat,
           longitude: nextLocation.lng,
         });
-        markerRef.current?.setLngLat([location.longitude, location.latitude]);
-        onChangeRef.current(location);
       }
     });
 
@@ -126,12 +107,8 @@ function MapboxLocationPickerMap({
   }, []);
 
   useEffect(() => {
-    const location = clampToBulgariaBounds({ latitude, longitude });
-    markerRef.current?.setLngLat([location.longitude, location.latitude]);
-    mapRef.current?.easeTo({
-      center: [location.longitude, location.latitude],
-      duration: 500,
-    });
+    markerRef.current?.setLngLat([longitude, latitude]);
+    mapRef.current?.easeTo({ center: [longitude, latitude], duration: 500 });
   }, [latitude, longitude]);
 
   return <div className="min-h-64 rounded-lg" ref={containerRef} />;
