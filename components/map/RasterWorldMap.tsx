@@ -42,8 +42,7 @@ type RasterMarkerCluster = {
   title?: string;
 };
 
-const clusterPixelRadius = 44;
-const unclusteredZoom = 18;
+const maxClusterZoom = 19;
 
 function formatClusterCount(count: number) {
   if (count >= 1000) {
@@ -53,15 +52,88 @@ function formatClusterCount(count: number) {
   return String(count);
 }
 
-function markerHtml(count: number, isPrivate: boolean) {
+function clusterPixelRadiusForZoom(zoom: number) {
+  return Math.max(12, Math.min(58, 70 - zoom * 3.1));
+}
+
+function markerSize(count: number) {
   if (count <= 1) {
-    return `<span class="block h-5 w-5 rounded-full border-2 border-[#20262f] ${isPrivate ? "bg-[#7a7ecb]" : "bg-[#f7c9c8]"} shadow-[0_6px_18px_rgba(32,38,47,0.22)] transition"></span>`;
+    return 18;
   }
 
-  const sizeClass =
-    count >= 50 ? "h-11 w-11 text-[12px]" : count >= 10 ? "h-9 w-9 text-[11px]" : "h-8 w-8 text-[11px]";
+  if (count >= 1000) {
+    return 38;
+  }
 
-  return `<span class="flex ${sizeClass} items-center justify-center rounded-full border border-[#20262f] ${isPrivate ? "bg-[#7a7ecb] text-white" : "bg-[#f7a1a1] text-[#20262f]"} font-bold shadow-[0_8px_22px_rgba(32,38,47,0.24)] transition">${formatClusterCount(count)}</span>`;
+  if (count >= 100) {
+    return 34;
+  }
+
+  if (count >= 10) {
+    return 30;
+  }
+
+  return 24;
+}
+
+function markerPalette(count: number, isPrivate: boolean) {
+  if (isPrivate) {
+    return {
+      background: "#7a7ecb",
+      color: "#ffffff",
+    };
+  }
+
+  if (count <= 1) {
+    return {
+      background: "#f49b86",
+      color: "#20262f",
+    };
+  }
+
+  if (count <= 4) {
+    return {
+      background: "#fff2df",
+      color: "#20262f",
+    };
+  }
+
+  return {
+    background: count >= 100 ? "#ee7979" : "#f7c9c8",
+    color: "#20262f",
+  };
+}
+
+function markerHtml(count: number, isPrivate: boolean) {
+  const size = markerSize(count);
+  const palette = markerPalette(count, isPrivate);
+  const shadow =
+    count <= 1
+      ? "0 4px 12px rgba(32, 38, 47, 0.18)"
+      : "0 7px 18px rgba(32, 38, 47, 0.2)";
+  const baseStyle = [
+    "align-items:center",
+    `background:${palette.background}`,
+    "border:1.5px solid #20262f",
+    "border-radius:9999px",
+    "box-sizing:border-box",
+    `box-shadow:${shadow}`,
+    `color:${palette.color}`,
+    "display:flex",
+    "font-family:Inter, Arial, sans-serif",
+    "font-size:11px",
+    "font-weight:700",
+    "justify-content:center",
+    `height:${size}px`,
+    "line-height:1",
+    `width:${size}px`,
+  ].join(";");
+
+  if (count <= 1) {
+    return `<span style="${baseStyle};font-size:0;"></span>`;
+  }
+
+  return `<span style="${baseStyle};">${formatClusterCount(count)}</span>`;
 }
 
 function buildRasterClusters(
@@ -70,7 +142,7 @@ function buildRasterClusters(
   markers: RasterWorldMapMarker[],
   clusterMarkers: boolean,
 ): RasterMarkerCluster[] {
-  if (!clusterMarkers || map.getZoom() >= unclusteredZoom) {
+  if (!clusterMarkers) {
     return markers.map((marker) => ({
       count: 1,
       id: marker.id,
@@ -83,6 +155,7 @@ function buildRasterClusters(
   }
 
   const zoom = map.getZoom();
+  const clusterPixelRadius = clusterPixelRadiusForZoom(zoom);
   const clusters: Array<RasterMarkerCluster & { pointX: number; pointY: number }> = [];
 
   for (const marker of markers) {
@@ -237,7 +310,7 @@ export function RasterWorldMap({
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = clusters.map((cluster) => {
       const isPrivate = cluster.privacy === "private";
-      const size = cluster.count <= 1 ? 20 : cluster.count >= 50 ? 44 : cluster.count >= 10 ? 36 : 32;
+      const size = markerSize(cluster.count);
       const icon: DivIcon = leaflet.divIcon({
         className: "",
         html: markerHtml(cluster.count, isPrivate),
@@ -257,9 +330,9 @@ export function RasterWorldMap({
 
       if (cluster.count > 1) {
         leafletMarker.on("click", () => {
-          const nextZoom = Math.min(unclusteredZoom, map.getZoom() + 2);
+          const nextZoom = Math.min(maxClusterZoom, map.getZoom() + 2);
 
-          if (map.getZoom() >= unclusteredZoom - 0.25) {
+          if (map.getZoom() >= maxClusterZoom - 0.25) {
             firstMarker?.onClick?.();
             return;
           }
