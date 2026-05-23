@@ -1,12 +1,15 @@
 import type { Timestamp } from "firebase/firestore";
 
 export type MemoryPrivacy = "private" | "public";
+export type UserRole = "user" | "admin";
 
 export type UserProfile = {
   id: string;
   email: string;
   displayName: string;
   photoURL: string;
+  role?: UserRole;
+  isAdmin?: boolean;
   createdAt: Timestamp | null;
 };
 

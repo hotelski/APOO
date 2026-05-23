@@ -2,20 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Map, Settings, UserRound } from "lucide-react";
+import { Map, Settings, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/cn";
-import { userDisplayName } from "@/lib/users";
+import { isAdminProfile, userDisplayName } from "@/lib/users";
 
 const navItems = [
   { href: "/map", label: "Map", icon: Map },
   { href: "/profile", label: "Profile", icon: UserRound },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, profile } = useAuth();
+  const visibleNavItems = navItems.filter(
+    (item) => !item.adminOnly || isAdminProfile(profile),
+  );
 
   return (
     <div className="min-h-screen bg-night pb-20 text-ivory md:pb-0">
@@ -34,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="hidden items-center gap-2 md:flex">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -68,8 +72,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {children}
 
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-night/95 px-2 py-2 backdrop-blur md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-3 gap-1">
-          {navItems.map((item) => {
+        <div
+          className="mx-auto grid max-w-md gap-1"
+          style={{
+            gridTemplateColumns: `repeat(${visibleNavItems.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 

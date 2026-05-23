@@ -10,6 +10,10 @@ import {
 import { db } from "@/lib/firebase";
 import type { UserProfile } from "@/types";
 
+export function isAdminProfile(profile: UserProfile | null) {
+  return profile?.role === "admin" || profile?.isAdmin === true;
+}
+
 export function userDisplayName(user: User | null) {
   return user?.displayName || user?.email?.split("@")[0] || "Friend";
 }
@@ -22,6 +26,8 @@ export async function createUserProfile(user: User, displayName?: string) {
     email: user.email ?? "",
     displayName: name,
     photoURL: user.photoURL ?? "",
+    role: "user",
+    isAdmin: false,
     createdAt: serverTimestamp(),
   });
 

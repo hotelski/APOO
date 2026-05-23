@@ -17,6 +17,7 @@ import {
   Plus,
   Search,
   Settings,
+  ShieldCheck,
   UserRound,
   X,
 } from "lucide-react";
@@ -27,13 +28,14 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useVisibleMemories } from "@/hooks/useMemories";
 import { cn } from "@/lib/cn";
 import { geocodeAddress, geocodeAddressSuggestions } from "@/lib/geocoding";
-import { userDisplayName } from "@/lib/users";
+import { isAdminProfile, userDisplayName } from "@/lib/users";
 import type { MapLocationTarget, Memory } from "@/types";
 
 const navItems = [
   { href: "/map", label: "Public Map", icon: Map },
   { href: "/profile", label: "Profile", icon: UserRound, protected: true },
   { href: "/settings", label: "Settings", icon: Settings, protected: true },
+  { href: "/admin", label: "Admin", icon: ShieldCheck, protected: true, adminOnly: true },
   { href: "/", label: "About", icon: BookOpen },
 ];
 
@@ -59,6 +61,9 @@ export default function MapPage() {
   const privateCount = memories.filter((memory) => memory.privacy === "private").length;
   const publicCount = memories.length - privateCount;
   const displayName = profile?.displayName || userDisplayName(user);
+  const visibleNavItems = navItems.filter(
+    (item) => !item.adminOnly || isAdminProfile(profile),
+  );
 
   const handleAddMemory = () => {
     if (!user) {
@@ -196,7 +201,7 @@ export default function MapPage() {
           New Memory
         </button>
 
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
 
           if (item.protected) {

@@ -10,9 +10,52 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return signedIn()
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+        );
+    }
+
+    function validUserFields() {
+      return request.resource.data.keys().hasOnly([
+        "email",
+        "displayName",
+        "photoURL",
+        "role",
+        "isAdmin",
+        "createdAt",
+      ]);
+    }
+
+    function validRole() {
+      return request.resource.data.role in ["user", "admin"]
+        && request.resource.data.isAdmin == (request.resource.data.role == "admin");
+    }
+
     match /users/{userId} {
-      allow create: if ownsUser(userId);
-      allow read, update, delete: if ownsUser(userId);
+      allow create: if ownsUser(userId)
+        && validUserFields()
+        && request.resource.data.role == "user"
+        && request.resource.data.isAdmin != true;
+
+      allow read: if ownsUser(userId) || isAdmin();
+
+      allow update: if (
+          ownsUser(userId)
+          && validUserFields()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "displayName",
+            "photoURL",
+          ])
+        ) || (
+          isAdmin()
+          && validUserFields()
+          && validRole()
+        );
+
+      allow delete: if isAdmin();
     }
 
     match /memories/{memoryId} {
@@ -21,15 +64,17 @@ service cloud.firestore {
         && request.resource.data.privacy in ["private", "public"];
 
       allow read: if resource.data.privacy == "public"
-        || (signedIn() && resource.data.userId == request.auth.uid);
+        || (signedIn() && resource.data.userId == request.auth.uid)
+        || isAdmin();
 
-      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if (signedIn() && resource.data.userId == request.auth.uid)
+        || isAdmin();
     }
 
     match /reports/{reportId} {
       allow create: if signedIn()
         && request.resource.data.reporterId == request.auth.uid;
-      allow read, update, delete: if false;
+      allow read, update, delete: if isAdmin();
     }
   }
 }

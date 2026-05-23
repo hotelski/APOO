@@ -72,9 +72,30 @@ They are written for the MVP model:
 - Public memories are readable by anyone. Private memories are readable only by their owner.
 - Only memory owners can update or delete their memories.
 - Signed-in users can create reports.
+- Admin users can read reports, review all memories, delete unsafe memories, and manage user roles.
 - Storage uploads are limited to the authenticated owner's memory folder.
 
 Deploy them with the Firebase CLI after reviewing them for your production needs.
+
+## Admin Access
+
+The admin panel is available at `/admin`, but only for signed-in users whose Firestore profile has admin access.
+
+To bootstrap the first admin:
+
+1. Register or log in with the account that should become admin.
+2. In Firebase Console, open Firestore and find `users/{uid}` for that account.
+3. Add or update these fields:
+
+```text
+role: "admin"
+isAdmin: true
+```
+
+4. Deploy the updated `firestore.rules` and `storage.rules`.
+5. Refresh the app or log out and back in.
+
+After the first admin exists, the `/admin` panel can promote or demote other users. The UI prevents an admin from removing their own admin role from inside the panel.
 
 ## Project Structure
 
@@ -83,6 +104,7 @@ app/
   (auth)/login
   (auth)/signup
   map
+  (protected)/admin
   (protected)/memories/[id]
   (protected)/profile
   (protected)/settings
@@ -106,6 +128,8 @@ types/
 - `email`
 - `displayName`
 - `photoURL`
+- `role`
+- `isAdmin`
 - `createdAt`
 
 ### memories
