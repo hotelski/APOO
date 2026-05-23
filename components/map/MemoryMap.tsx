@@ -2,9 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
-import { MapPin } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { defaultMapCenter, defaultMapZoom, mapboxToken } from "@/lib/mapbox";
+import {
+  defaultMapCenter,
+  defaultMapZoom,
+  fallbackMapStyle,
+  mapboxToken,
+} from "@/lib/mapbox";
 import type { Memory } from "@/types";
 
 type MemoryMapProps = {
@@ -19,17 +23,19 @@ export function MemoryMap({ className, memories, onMemorySelect }: MemoryMapProp
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   useEffect(() => {
-    if (!mapboxToken || !containerRef.current || mapRef.current) {
+    if (!containerRef.current || mapRef.current) {
       return;
     }
 
-    mapboxgl.accessToken = mapboxToken;
+    if (mapboxToken) {
+      mapboxgl.accessToken = mapboxToken;
+    }
 
     mapRef.current = new mapboxgl.Map({
       center: defaultMapCenter,
       container: containerRef.current,
       renderWorldCopies: true,
-      style: "mapbox://styles/mapbox/light-v11",
+      style: mapboxToken ? "mapbox://styles/mapbox/light-v11" : fallbackMapStyle,
       zoom: defaultMapZoom,
     });
 
@@ -78,28 +84,6 @@ export function MemoryMap({ className, memories, onMemorySelect }: MemoryMapProp
       });
     }
   }, [memories, onMemorySelect]);
-
-  if (!mapboxToken) {
-    return (
-      <div
-        className={cn(
-          "flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white/85 p-6 text-center text-slate-900",
-          className,
-        )}
-      >
-        <div className="max-w-sm">
-          <MapPin className="mx-auto h-9 w-9 text-slate-600" />
-          <h2 className="mt-4 font-serif text-lg font-semibold text-slate-950">
-            Mapbox token needed
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to your local .env file to render
-            the memory map.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div

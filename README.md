@@ -43,11 +43,13 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
 ```
 
-5. Create a Mapbox access token and add it:
+5. Optional: add a Mapbox access token if you want to use the Mapbox-hosted light style:
 
 ```bash
 NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=...
 ```
+
+Without this token, the app still renders a light world map using the built-in raster tile fallback.
 
 6. Run the dev server:
 
