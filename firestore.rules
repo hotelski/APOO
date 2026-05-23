@@ -20,8 +20,8 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.privacy in ["private", "public"];
 
-      allow read: if signedIn()
-        && (resource.data.privacy == "public" || resource.data.userId == request.auth.uid);
+      allow read: if resource.data.privacy == "public"
+        || (signedIn() && resource.data.userId == request.auth.uid);
 
       allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Flag } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
@@ -47,6 +48,22 @@ export function ReportMemoryForm({ memoryId }: { memoryId: string }) {
     return (
       <div className="rounded-lg border border-white/10 bg-white/[0.06] p-4 text-sm text-ivory/70">
         Report submitted. Thank you for helping keep public memories respectful.
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="rounded-lg border border-white/10 bg-white/[0.06] p-4">
+        <p className="text-sm leading-6 text-ivory/65">
+          Log in to report this public memory.
+        </p>
+        <Link
+          className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg bg-ivory px-4 text-sm font-semibold text-night transition hover:bg-ivory/90"
+          href="/login?next=/map"
+        >
+          Log in
+        </Link>
       </div>
     );
   }

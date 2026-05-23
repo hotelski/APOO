@@ -1,6 +1,6 @@
 # APOO - A Place of Our Own
 
-APOO is a Next.js MVP for saving personal memories on a map. Users can sign up, add memories with photos and coordinates, view public and private pins, manage their own memories, report public memories, and update basic profile settings.
+APOO is a Next.js MVP for saving personal memories on a map. Visitors can explore the public world map without an account. Signed-in users can add memories with photos and coordinates, view their private pins alongside public pins, manage their own memories, report public memories, and update basic profile settings.
 
 ## Tech Stack
 
@@ -67,7 +67,7 @@ Example rules are included:
 They are written for the MVP model:
 
 - Users can read and update only their own profile.
-- Memories are readable by their owner or by any signed-in user when public.
+- Public memories are readable by anyone. Private memories are readable only by their owner.
 - Only memory owners can update or delete their memories.
 - Signed-in users can create reports.
 - Storage uploads are limited to the authenticated owner's memory folder.
@@ -80,7 +80,7 @@ Deploy them with the Firebase CLI after reviewing them for your production needs
 app/
   (auth)/login
   (auth)/signup
-  (protected)/map
+  map
   (protected)/memories/[id]
   (protected)/profile
   (protected)/settings

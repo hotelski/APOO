@@ -21,12 +21,8 @@ export function useVisibleMemories(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) {
-      return;
-    }
-
     let publicReady = false;
-    let mineReady = false;
+    let mineReady = !userId;
 
     const markReady = () => {
       if (publicReady && mineReady) {
@@ -34,21 +30,26 @@ export function useVisibleMemories(userId: string | undefined) {
       }
     };
 
+    setLoading(true);
+    setMyMemories([]);
+
     const unsubscribePublic = subscribePublicMemories((memories) => {
       publicReady = true;
       setPublicMemories(memories);
       markReady();
     });
 
-    const unsubscribeMine = subscribeMyMemories(userId, (memories) => {
-      mineReady = true;
-      setMyMemories(memories);
-      markReady();
-    });
+    const unsubscribeMine = userId
+      ? subscribeMyMemories(userId, (memories) => {
+          mineReady = true;
+          setMyMemories(memories);
+          markReady();
+        })
+      : undefined;
 
     return () => {
       unsubscribePublic();
-      unsubscribeMine();
+      unsubscribeMine?.();
     };
   }, [userId]);
 
