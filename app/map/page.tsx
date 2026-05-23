@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   Compass,
@@ -10,6 +10,7 @@ import {
   LogIn,
   LogOut,
   Map,
+  MapPin,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -25,7 +26,7 @@ import { MemoryMap } from "@/components/map/MemoryMap";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useVisibleMemories } from "@/hooks/useMemories";
 import { cn } from "@/lib/cn";
-import { geocodeAddress } from "@/lib/geocoding";
+import { geocodeAddress, geocodeAddressSuggestions } from "@/lib/geocoding";
 import { userDisplayName } from "@/lib/users";
 import type { MapLocationTarget, Memory } from "@/types";
 
@@ -46,8 +47,12 @@ export default function MapPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [searchError, setSearchError] = useState("");
+  const [addressSuggestions, setAddressSuggestions] = useState<MapLocationTarget[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [searchingAddress, setSearchingAddress] = useState(false);
   const [searchTarget, setSearchTarget] = useState<MapLocationTarget | null>(null);
+  const skipNextSuggestions = useRef(false);
 
   const selectedMemory =
     memories.find((memory) => memory.id === selectedMemoryId) ?? null;
@@ -77,10 +82,59 @@ export default function MapPage() {
     setSelectedMemoryId(memory.id);
   }, []);
 
+  useEffect(() => {
+    const query = addressQuery.trim();
+
+    if (query.length < 3) {
+      setAddressSuggestions([]);
+      setSuggestionsLoading(false);
+      setSuggestionsOpen(false);
+      return;
+    }
+
+    if (skipNextSuggestions.current) {
+      skipNextSuggestions.current = false;
+      setAddressSuggestions([]);
+      setSuggestionsLoading(false);
+      setSuggestionsOpen(false);
+      return;
+    }
+
+    let active = true;
+    setSuggestionsLoading(true);
+
+    const timer = window.setTimeout(async () => {
+      const suggestions = await geocodeAddressSuggestions(query, 5).catch(() => []);
+
+      if (!active) {
+        return;
+      }
+
+      setAddressSuggestions(suggestions);
+      setSuggestionsLoading(false);
+      setSuggestionsOpen(suggestions.length > 0);
+    }, 350);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [addressQuery]);
+
+  const selectAddressSuggestion = useCallback((suggestion: MapLocationTarget) => {
+    skipNextSuggestions.current = true;
+    setAddressQuery(suggestion.label);
+    setAddressSuggestions([]);
+    setSearchError("");
+    setSearchTarget(suggestion);
+    setSuggestionsOpen(false);
+  }, []);
+
   const handleAddressSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     setSearchError("");
+    setSuggestionsOpen(false);
 
     if (!addressQuery.trim()) {
       setSearchError("Enter an address to search.");
@@ -91,6 +145,9 @@ export default function MapPage() {
 
     try {
       const result = await geocodeAddress(addressQuery);
+      skipNextSuggestions.current = true;
+      setAddressQuery(result.label);
+      setAddressSuggestions([]);
       setSearchTarget(result);
     } catch (error) {
       setSearchTarget(null);
@@ -253,46 +310,92 @@ export default function MapPage() {
 
       <div
         className={cn(
-          "fixed left-3 right-3 top-3 z-50 transition-[left] duration-300 md:right-6",
+          "fixed left-3 right-3 top-3 z-[70] transition-[left] duration-300 md:right-6",
           sidebarOpen ? "md:left-60" : "md:left-16",
         )}
       >
-        <form
-          className="mx-auto flex max-w-2xl items-center gap-2"
-          onSubmit={handleAddressSearch}
-        >
-          <button
-            aria-label="Open menu"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#20262f] text-white shadow-xl md:hidden"
-            onClick={() => setMobileNavOpen(true)}
-            type="button"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-
-          <label className="flex h-11 flex-1 items-center gap-3 rounded-lg border border-black/10 bg-[#20262f] pl-4 pr-1.5 text-white shadow-xl">
-            <Search className="h-5 w-5 shrink-0 text-white/75" />
-            <input
-              aria-label="Search addresses"
-              className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-white/45"
-              onChange={(event) => setAddressQuery(event.target.value)}
-              placeholder="Search any address..."
-              value={addressQuery}
-            />
+        <div className="mx-auto max-w-2xl">
+          <form className="flex items-center gap-2" onSubmit={handleAddressSearch}>
             <button
-              aria-label="Go to address"
-              className="inline-flex h-8 min-w-12 items-center justify-center rounded-md bg-white px-3 text-xs font-bold text-[#20262f] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/55"
-              disabled={searchingAddress}
-              type="submit"
+              aria-label="Open menu"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#20262f] text-white shadow-xl md:hidden"
+              onClick={() => setMobileNavOpen(true)}
+              type="button"
             >
-              {searchingAddress ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Go"
-              )}
+              <Menu className="h-5 w-5" />
             </button>
-          </label>
-        </form>
+
+            <label className="flex h-11 flex-1 items-center gap-3 rounded-lg border border-black/10 bg-[#20262f] pl-4 pr-1.5 text-white shadow-xl">
+              <Search className="h-5 w-5 shrink-0 text-white/75" />
+              <input
+                aria-autocomplete="list"
+                aria-expanded={suggestionsOpen || suggestionsLoading}
+                aria-label="Search addresses"
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-white/45"
+                onChange={(event) => {
+                  skipNextSuggestions.current = false;
+                  setAddressQuery(event.target.value);
+                  setSearchError("");
+                  setSuggestionsOpen(true);
+                }}
+                onFocus={() => {
+                  if (addressSuggestions.length > 0) {
+                    setSuggestionsOpen(true);
+                  }
+                }}
+                placeholder="Search any address..."
+                value={addressQuery}
+              />
+              <button
+                aria-label="Go to address"
+                className="inline-flex h-8 min-w-12 items-center justify-center rounded-md bg-white px-3 text-xs font-bold text-[#20262f] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/55"
+                disabled={searchingAddress}
+                type="submit"
+              >
+                {searchingAddress ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Go"
+                )}
+              </button>
+            </label>
+          </form>
+
+          {suggestionsOpen || suggestionsLoading ? (
+            <div className="mt-2 overflow-hidden rounded-lg border border-black/10 bg-white text-[#20262f] shadow-2xl">
+              {suggestionsLoading && addressSuggestions.length === 0 ? (
+                <div className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold text-[#20262f]/60">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Searching addresses...
+                </div>
+              ) : null}
+
+              {addressSuggestions.map((suggestion) => (
+                <button
+                  className="flex w-full items-start gap-3 border-t border-black/5 px-4 py-3 text-left transition first:border-t-0 hover:bg-[#f3eee8]"
+                  key={`${suggestion.label}-${suggestion.latitude}-${suggestion.longitude}`}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    selectAddressSuggestion(suggestion);
+                  }}
+                  type="button"
+                >
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#20262f]/8 text-[#20262f]">
+                    <MapPin className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold">
+                      {suggestion.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs font-semibold text-[#20262f]/45">
+                      {suggestion.latitude.toFixed(4)}, {suggestion.longitude.toFixed(4)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {(searchError || searchTarget) ? (
