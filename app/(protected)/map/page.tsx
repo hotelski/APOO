@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AddMemoryModal } from "@/components/memories/AddMemoryModal";
 import { MemoryCard } from "@/components/memories/MemoryCard";
+import { MemoryDetailModal } from "@/components/memories/MemoryDetailModal";
 import { MemoryMap } from "@/components/map/MemoryMap";
 import { Button } from "@/components/ui/Button";
 import { useVisibleMemories } from "@/hooks/useMemories";
@@ -13,15 +13,17 @@ import type { Memory } from "@/types";
 
 export default function MapPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const { memories, loading } = useVisibleMemories(user?.uid);
   const [addOpen, setAddOpen] = useState(false);
+  const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
+  const selectedMemory =
+    memories.find((memory) => memory.id === selectedMemoryId) ?? null;
 
   const handleSelect = useCallback(
     (memory: Memory) => {
-      router.push(`/memories/${memory.id}`);
+      setSelectedMemoryId(memory.id);
     },
-    [router],
+    [],
   );
 
   return (
@@ -84,8 +86,13 @@ export default function MapPage() {
 
       <AddMemoryModal
         onClose={() => setAddOpen(false)}
-        onCreated={(memoryId) => router.push(`/memories/${memoryId}`)}
+        onCreated={(memoryId) => setSelectedMemoryId(memoryId)}
         open={addOpen}
+      />
+      <MemoryDetailModal
+        memory={selectedMemory}
+        onClose={() => setSelectedMemoryId(null)}
+        onDeleted={() => setSelectedMemoryId(null)}
       />
     </main>
   );
