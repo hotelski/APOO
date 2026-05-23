@@ -5,6 +5,12 @@ import mapboxgl from "mapbox-gl";
 import { RasterWorldMap } from "@/components/map/RasterWorldMap";
 import { cn } from "@/lib/cn";
 import {
+  bulgariaBorderGeoJson,
+  bulgariaMapboxBounds,
+  bulgariaMaskGeoJson,
+  isWithinBulgariaBounds,
+} from "@/lib/bulgaria";
+import {
   defaultMapCenter,
   defaultMapZoom,
   mapboxToken,
@@ -24,9 +30,13 @@ export function MemoryMap({
   onMemorySelect,
   searchTarget,
 }: MemoryMapProps) {
+  const bulgariaMemories = useMemo(
+    () => memories.filter((memory) => isWithinBulgariaBounds(memory)),
+    [memories],
+  );
   const rasterMarkers = useMemo(
     () =>
-      memories.map((memory) => ({
+      bulgariaMemories.map((memory) => ({
         id: memory.id,
         latitude: memory.latitude,
         longitude: memory.longitude,
@@ -34,7 +44,7 @@ export function MemoryMap({
         privacy: memory.privacy,
         title: memory.title,
       })),
-    [memories, onMemorySelect],
+    [bulgariaMemories, onMemorySelect],
   );
 
   if (!mapboxToken) {
@@ -48,12 +58,12 @@ export function MemoryMap({
   }
 
   return (
-    <MapboxMemoryMap
-      className={className}
-      memories={memories}
-      onMemorySelect={onMemorySelect}
-      searchTarget={searchTarget}
-    />
+      <MapboxMemoryMap
+        className={className}
+        memories={bulgariaMemories}
+        onMemorySelect={onMemorySelect}
+        searchTarget={searchTarget}
+      />
   );
 }
 
@@ -78,9 +88,50 @@ function MapboxMemoryMap({
     mapRef.current = new mapboxgl.Map({
       center: defaultMapCenter,
       container: containerRef.current,
+      maxBounds: bulgariaMapboxBounds,
       renderWorldCopies: true,
       style: "mapbox://styles/mapbox/light-v11",
       zoom: defaultMapZoom,
+    });
+
+    mapRef.current.on("load", () => {
+      const map = mapRef.current;
+
+      if (!map || map.getSource("bulgaria-mask")) {
+        return;
+      }
+
+      map.addSource("bulgaria-mask", {
+        data: bulgariaMaskGeoJson,
+        type: "geojson",
+      });
+      map.addLayer({
+        id: "bulgaria-mask",
+        paint: {
+          "fill-color": "#20262f",
+          "fill-opacity": 0.64,
+        },
+        source: "bulgaria-mask",
+        type: "fill",
+      });
+      map.addSource("bulgaria-border", {
+        data: bulgariaBorderGeoJson,
+        type: "geojson",
+      });
+      map.addLayer({
+        id: "bulgaria-border",
+        paint: {
+          "line-color": "#f8fafc",
+          "line-opacity": 0.95,
+          "line-width": 2.5,
+        },
+        source: "bulgaria-border",
+        type: "line",
+      });
+      map.fitBounds(bulgariaMapboxBounds, {
+        duration: 0,
+        padding: 36,
+      });
     });
 
     mapRef.current.addControl(
@@ -139,7 +190,7 @@ function MapboxMemoryMap({
     searchMarkerRef.current?.remove();
     searchMarkerRef.current = null;
 
-    if (!searchTarget) {
+    if (!searchTarget || !isWithinBulgariaBounds(searchTarget)) {
       return;
     }
 

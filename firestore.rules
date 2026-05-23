@@ -10,6 +10,15 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function isInBulgaria(data) {
+      return data.latitude is number
+        && data.longitude is number
+        && data.latitude >= 41.22
+        && data.latitude <= 44.23
+        && data.longitude >= 22.35
+        && data.longitude <= 28.62;
+    }
+
     match /users/{userId} {
       allow create: if ownsUser(userId);
       allow read, update, delete: if ownsUser(userId);
@@ -18,12 +27,16 @@ service cloud.firestore {
     match /memories/{memoryId} {
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.privacy in ["private", "public"];
+        && request.resource.data.privacy in ["private", "public"]
+        && isInBulgaria(request.resource.data);
 
       allow read: if resource.data.privacy == "public"
         || (signedIn() && resource.data.userId == request.auth.uid);
 
-      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && isInBulgaria(request.resource.data);
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
 
     match /reports/{reportId} {

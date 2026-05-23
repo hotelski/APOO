@@ -1,3 +1,4 @@
+import { bulgariaBounds, isWithinBulgariaBounds } from "@/lib/bulgaria";
 import { mapboxToken } from "@/lib/mapbox";
 import type { MapLocationTarget } from "@/types";
 
@@ -49,6 +50,14 @@ function photonLabel(feature: NonNullable<PhotonResponse["features"]>[number]) {
     .join(", ");
 }
 
+function normalizeBulgariaResult(result: MapLocationTarget | null) {
+  if (!result || !isWithinBulgariaBounds(result)) {
+    return null;
+  }
+
+  return result;
+}
+
 async function geocodeWithMapbox(query: string): Promise<MapLocationTarget | null> {
   if (!mapboxToken) {
     return null;
@@ -57,6 +66,7 @@ async function geocodeWithMapbox(query: string): Promise<MapLocationTarget | nul
   const params = new URLSearchParams({
     access_token: mapboxToken,
     autocomplete: "true",
+    country: "BG",
     limit: "1",
   });
   const response = await fetch(
@@ -75,15 +85,16 @@ async function geocodeWithMapbox(query: string): Promise<MapLocationTarget | nul
     return null;
   }
 
-  return {
+  return normalizeBulgariaResult({
     label: feature.place_name || query,
     latitude: center[1],
     longitude: center[0],
-  };
+  });
 }
 
 async function geocodeWithNominatim(query: string): Promise<MapLocationTarget | null> {
   const params = new URLSearchParams({
+    countrycodes: "bg",
     format: "jsonv2",
     limit: "1",
     q: query,
@@ -110,17 +121,23 @@ async function geocodeWithNominatim(query: string): Promise<MapLocationTarget | 
     return null;
   }
 
-  return {
+  return normalizeBulgariaResult({
     label: result.display_name || query,
     latitude,
     longitude,
-  };
+  });
 }
 
 async function geocodeWithPhoton(query: string): Promise<MapLocationTarget | null> {
   const params = new URLSearchParams({
+    bbox: [
+      bulgariaBounds.west,
+      bulgariaBounds.south,
+      bulgariaBounds.east,
+      bulgariaBounds.north,
+    ].join(","),
     limit: "1",
-    q: query,
+    q: `${query}, Bulgaria`,
   });
   const response = await fetch(`https://photon.komoot.io/api/?${params.toString()}`);
 
@@ -136,11 +153,11 @@ async function geocodeWithPhoton(query: string): Promise<MapLocationTarget | nul
     return null;
   }
 
-  return {
+  return normalizeBulgariaResult({
     label: photonLabel(feature) || query,
     latitude: coordinates[1],
     longitude: coordinates[0],
-  };
+  });
 }
 
 export async function geocodeAddress(query: string): Promise<MapLocationTarget> {
@@ -156,7 +173,7 @@ export async function geocodeAddress(query: string): Promise<MapLocationTarget> 
     (await geocodeWithPhoton(cleanQuery).catch(() => null));
 
   if (!result) {
-    throw new Error("Address not found.");
+    throw new Error("Address not found in Bulgaria.");
   }
 
   return result;

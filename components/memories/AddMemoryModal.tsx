@@ -9,6 +9,10 @@ import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/ui/Textarea";
 import { LocationPickerMap } from "@/components/map/LocationPickerMap";
 import { createMemory } from "@/lib/memories";
+import {
+  clampToBulgariaBounds,
+  isWithinBulgariaBounds,
+} from "@/lib/bulgaria";
 import { cn } from "@/lib/cn";
 import { defaultMapCenter } from "@/lib/mapbox";
 import type { MemoryPrivacy } from "@/types";
@@ -42,8 +46,15 @@ export function AddMemoryModal({ onClose, onCreated, open }: AddMemoryModalProps
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLatitude(position.coords.latitude);
-        setLongitude(position.coords.longitude);
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+
+        if (isWithinBulgariaBounds(location)) {
+          setLatitude(location.latitude);
+          setLongitude(location.longitude);
+        }
       },
       () => undefined,
       { enableHighAccuracy: true, maximumAge: 60000, timeout: 5000 },
@@ -75,6 +86,11 @@ export function AddMemoryModal({ onClose, onCreated, open }: AddMemoryModalProps
 
     if (!title.trim()) {
       setError("Add a title before saving.");
+      return;
+    }
+
+    if (!isWithinBulgariaBounds({ latitude, longitude })) {
+      setError("Choose a location inside Bulgaria.");
       return;
     }
 
@@ -197,8 +213,9 @@ export function AddMemoryModal({ onClose, onCreated, open }: AddMemoryModalProps
               latitude={latitude}
               longitude={longitude}
               onChange={(location) => {
-                setLatitude(location.latitude);
-                setLongitude(location.longitude);
+                const nextLocation = clampToBulgariaBounds(location);
+                setLatitude(nextLocation.latitude);
+                setLongitude(nextLocation.longitude);
               }}
             />
           </div>
