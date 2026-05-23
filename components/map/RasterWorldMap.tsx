@@ -1,12 +1,17 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { defaultMapCenter, defaultMapZoom } from "@/lib/mapbox";
 import type { MemoryPrivacy } from "@/types";
+import type {
+  DivIcon,
+  LatLngBoundsExpression,
+  Map as LeafletMap,
+  Marker as LeafletMarker,
+} from "leaflet";
 
-const tileZoom = 2;
-const tileCount = 2 ** tileZoom;
-const tileHosts = ["a", "b", "c", "d"];
-const maxMercatorLatitude = 85.05112878;
+type LeafletModule = typeof import("leaflet");
 
 type RasterWorldMapMarker = {
   id: string;
@@ -25,64 +30,136 @@ type RasterWorldMapProps = {
   onMapClick?: (location: { latitude: number; longitude: number }) => void;
 };
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function tileUrl(x: number, y: number) {
-  const host = tileHosts[(x + y) % tileHosts.length];
-
-  return `https://${host}.basemaps.cartocdn.com/light_all/${tileZoom}/${x}/${y}.png`;
-}
-
-function projectLocation(latitude: number, longitude: number) {
-  const clampedLatitude = clamp(latitude, -maxMercatorLatitude, maxMercatorLatitude);
-  const latitudeRadians = (clampedLatitude * Math.PI) / 180;
-  const x = ((longitude + 180) / 360) * 100;
-  const y =
-    ((1 -
-      Math.log(Math.tan(latitudeRadians) + 1 / Math.cos(latitudeRadians)) /
-        Math.PI) /
-      2) *
-    100;
-
-  return {
-    left: `${clamp(x, 0, 100)}%`,
-    top: `${clamp(y, 0, 100)}%`,
-  };
-}
-
-function unprojectLocation(xRatio: number, yRatio: number) {
-  const longitude = xRatio * 360 - 180;
-  const latitudeRadians = Math.atan(Math.sinh(Math.PI * (1 - 2 * yRatio)));
-  const latitude = (latitudeRadians * 180) / Math.PI;
-
-  return {
-    latitude: clamp(latitude, -maxMercatorLatitude, maxMercatorLatitude),
-    longitude: clamp(longitude, -180, 180),
-  };
-}
-
 export function RasterWorldMap({
   ariaLabel = "World map",
   className,
   markers = [],
   onMapClick,
 }: RasterWorldMapProps) {
-  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!onMapClick) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const markersRef = useRef<LeafletMarker[]>([]);
+  const onMapClickRef = useRef(onMapClick);
+  const [leaflet, setLeaflet] = useState<LeafletModule | null>(null);
+
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function initializeMap() {
+      if (!containerRef.current || mapRef.current) {
+        return;
+      }
+
+      const L = await import("leaflet");
+
+      if (!active || !containerRef.current) {
+        return;
+      }
+
+      const map = L.map(containerRef.current, {
+        center: [defaultMapCenter[1], defaultMapCenter[0]],
+        maxBounds: [
+          [-85, -220],
+          [85, 220],
+        ],
+        minZoom: 2,
+        scrollWheelZoom: true,
+        worldCopyJump: true,
+        zoom: Math.max(2, defaultMapZoom),
+        zoomControl: true,
+        zoomSnap: 0.25,
+      });
+
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19,
+        subdomains: ["a", "b", "c", "d"],
+      }).addTo(map);
+
+      map.on("click", (event) => {
+        onMapClickRef.current?.({
+          latitude: event.latlng.lat,
+          longitude: event.latlng.lng,
+        });
+      });
+
+      mapRef.current = map;
+      setLeaflet(L);
+
+      window.setTimeout(() => map.invalidateSize(), 0);
+    }
+
+    initializeMap();
+
+    return () => {
+      active = false;
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!leaflet || !mapRef.current) {
       return;
     }
 
-    const rect = event.currentTarget.getBoundingClientRect();
+    const map = mapRef.current;
 
-    onMapClick(
-      unprojectLocation(
-        clamp((event.clientX - rect.left) / rect.width, 0, 1),
-        clamp((event.clientY - rect.top) / rect.height, 0, 1),
-      ),
-    );
-  };
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = markers.map((marker) => {
+      const isPrivate = marker.privacy === "private";
+      const icon: DivIcon = leaflet.divIcon({
+        className: "",
+        html: `<span class="flex h-7 w-7 items-center justify-center rounded-full border border-[#20262f] text-[11px] font-bold shadow-[0_6px_18px_rgba(32,38,47,0.22)] transition ${isPrivate ? "bg-[#7a7ecb] text-white" : "bg-[#f7c9c8] text-[#20262f]"}">${marker.label ?? "1"}</span>`,
+        iconAnchor: [14, 14],
+        iconSize: [28, 28],
+      });
+
+      const leafletMarker = leaflet
+        .marker([marker.latitude, marker.longitude], {
+          icon,
+          keyboard: Boolean(marker.onClick),
+          title: marker.title,
+        })
+        .addTo(map);
+
+      if (marker.onClick) {
+        leafletMarker.on("click", marker.onClick);
+      }
+
+      return leafletMarker;
+    });
+
+    if (markers.length === 0) {
+      return;
+    }
+
+    if (markers.length === 1 && onMapClick) {
+      const [marker] = markers;
+      map.setView([marker.latitude, marker.longitude], Math.max(map.getZoom(), 4), {
+        animate: true,
+      });
+      return;
+    }
+
+    const bounds = markers.map((marker) => [
+      marker.latitude,
+      marker.longitude,
+    ]) as LatLngBoundsExpression;
+
+    map.fitBounds(bounds, {
+      animate: true,
+      maxZoom: 13,
+      padding: [80, 80],
+    });
+  }, [leaflet, markers, onMapClick]);
 
   return (
     <div
@@ -92,54 +169,7 @@ export function RasterWorldMap({
         onMapClick && "cursor-crosshair",
         className,
       )}
-      onClick={handleClick}
-      role={onMapClick ? "button" : "img"}
-      tabIndex={onMapClick ? 0 : undefined}
-    >
-      <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
-        {Array.from({ length: tileCount }).flatMap((_, y) =>
-          Array.from({ length: tileCount }).map((__, x) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              alt=""
-              className="h-full w-full select-none object-fill"
-              draggable={false}
-              key={`${x}-${y}`}
-              src={tileUrl(x, y)}
-            />
-          )),
-        )}
-      </div>
-
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05),rgba(32,38,47,0.03))]" />
-
-      {markers.map((marker) => {
-        const position = projectLocation(marker.latitude, marker.longitude);
-        const isPrivate = marker.privacy === "private";
-
-        return (
-          <button
-            aria-label={marker.title ? `Open ${marker.title}` : "Open memory"}
-            className={cn(
-              "absolute z-10 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#20262f] text-[11px] font-bold shadow-[0_6px_18px_rgba(32,38,47,0.22)] transition hover:scale-110",
-              isPrivate ? "bg-[#7a7ecb] text-white" : "bg-[#f7c9c8] text-[#20262f]",
-            )}
-            key={marker.id}
-            onClick={(event) => {
-              event.stopPropagation();
-              marker.onClick?.();
-            }}
-            style={position}
-            type="button"
-          >
-            {marker.label ?? "1"}
-          </button>
-        );
-      })}
-
-      <div className="absolute bottom-1 right-2 rounded bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-        © OpenStreetMap © CARTO
-      </div>
-    </div>
+      ref={containerRef}
+    />
   );
 }
