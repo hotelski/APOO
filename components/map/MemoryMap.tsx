@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { RasterWorldMap } from "@/components/map/RasterWorldMap";
 import { cn } from "@/lib/cn";
@@ -9,27 +9,40 @@ import {
   defaultMapZoom,
   mapboxToken,
 } from "@/lib/mapbox";
-import type { Memory } from "@/types";
+import type { MapLocationTarget, Memory } from "@/types";
 
 type MemoryMapProps = {
   className?: string;
   memories: Memory[];
   onMemorySelect: (memory: Memory) => void;
+  searchTarget?: MapLocationTarget | null;
 };
 
-export function MemoryMap({ className, memories, onMemorySelect }: MemoryMapProps) {
+export function MemoryMap({
+  className,
+  memories,
+  onMemorySelect,
+  searchTarget,
+}: MemoryMapProps) {
+  const rasterMarkers = useMemo(
+    () =>
+      memories.map((memory) => ({
+        id: memory.id,
+        latitude: memory.latitude,
+        longitude: memory.longitude,
+        onClick: () => onMemorySelect(memory),
+        privacy: memory.privacy,
+        title: memory.title,
+      })),
+    [memories, onMemorySelect],
+  );
+
   if (!mapboxToken) {
     return (
       <RasterWorldMap
         className={className}
-        markers={memories.map((memory) => ({
-          id: memory.id,
-          latitude: memory.latitude,
-          longitude: memory.longitude,
-          onClick: () => onMemorySelect(memory),
-          privacy: memory.privacy,
-          title: memory.title,
-        }))}
+        markers={rasterMarkers}
+        searchTarget={searchTarget}
       />
     );
   }
@@ -39,14 +52,21 @@ export function MemoryMap({ className, memories, onMemorySelect }: MemoryMapProp
       className={className}
       memories={memories}
       onMemorySelect={onMemorySelect}
+      searchTarget={searchTarget}
     />
   );
 }
 
-function MapboxMemoryMap({ className, memories, onMemorySelect }: MemoryMapProps) {
+function MapboxMemoryMap({
+  className,
+  memories,
+  onMemorySelect,
+  searchTarget,
+}: MemoryMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) {
@@ -71,6 +91,8 @@ function MapboxMemoryMap({ className, memories, onMemorySelect }: MemoryMapProps
     return () => {
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
+      searchMarkerRef.current?.remove();
+      searchMarkerRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
     };
@@ -98,7 +120,7 @@ function MapboxMemoryMap({ className, memories, onMemorySelect }: MemoryMapProps
         .addTo(mapRef.current as mapboxgl.Map);
     });
 
-    if (memories.length > 0) {
+    if (memories.length > 0 && !searchTarget) {
       const bounds = new mapboxgl.LngLatBounds();
       memories.forEach((memory) => bounds.extend([memory.longitude, memory.latitude]));
       mapRef.current.fitBounds(bounds, {
@@ -107,7 +129,36 @@ function MapboxMemoryMap({ className, memories, onMemorySelect }: MemoryMapProps
         padding: 80,
       });
     }
-  }, [memories, onMemorySelect]);
+  }, [memories, onMemorySelect, searchTarget]);
+
+  useEffect(() => {
+    if (!mapRef.current) {
+      return;
+    }
+
+    searchMarkerRef.current?.remove();
+    searchMarkerRef.current = null;
+
+    if (!searchTarget) {
+      return;
+    }
+
+    const element = document.createElement("div");
+    element.setAttribute("aria-label", `Searched address: ${searchTarget.label}`);
+    element.className =
+      "h-9 w-9 rounded-full border-4 border-white bg-[#2563eb] shadow-[0_12px_28px_rgba(37,99,235,0.35)] ring-4 ring-blue-500/25";
+
+    searchMarkerRef.current = new mapboxgl.Marker({ anchor: "center", element })
+      .setLngLat([searchTarget.longitude, searchTarget.latitude])
+      .addTo(mapRef.current);
+
+    mapRef.current.flyTo({
+      center: [searchTarget.longitude, searchTarget.latitude],
+      duration: 950,
+      essential: true,
+      zoom: Math.max(mapRef.current.getZoom(), 13),
+    });
+  }, [searchTarget]);
 
   return (
     <div

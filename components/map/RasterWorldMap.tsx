@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { defaultMapCenter, defaultMapZoom } from "@/lib/mapbox";
-import type { MemoryPrivacy } from "@/types";
+import type { MapLocationTarget, MemoryPrivacy } from "@/types";
 import type {
   DivIcon,
   LatLngBoundsExpression,
@@ -28,6 +28,7 @@ type RasterWorldMapProps = {
   className?: string;
   markers?: RasterWorldMapMarker[];
   onMapClick?: (location: { latitude: number; longitude: number }) => void;
+  searchTarget?: MapLocationTarget | null;
 };
 
 export function RasterWorldMap({
@@ -35,10 +36,12 @@ export function RasterWorldMap({
   className,
   markers = [],
   onMapClick,
+  searchTarget,
 }: RasterWorldMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LeafletMarker[]>([]);
+  const searchMarkerRef = useRef<LeafletMarker | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const [leaflet, setLeaflet] = useState<LeafletModule | null>(null);
 
@@ -102,6 +105,8 @@ export function RasterWorldMap({
       active = false;
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
+      searchMarkerRef.current?.remove();
+      searchMarkerRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
     };
@@ -151,6 +156,10 @@ export function RasterWorldMap({
       return;
     }
 
+    if (searchTarget) {
+      return;
+    }
+
     const bounds = markers.map((marker) => [
       marker.latitude,
       marker.longitude,
@@ -161,7 +170,49 @@ export function RasterWorldMap({
       maxZoom: 13,
       padding: [80, 80],
     });
-  }, [leaflet, markers, onMapClick]);
+  }, [leaflet, markers, onMapClick, searchTarget]);
+
+  useEffect(() => {
+    if (!leaflet || !mapRef.current) {
+      return;
+    }
+
+    const map = mapRef.current;
+
+    searchMarkerRef.current?.remove();
+    searchMarkerRef.current = null;
+
+    if (!searchTarget) {
+      return;
+    }
+
+    const icon = leaflet.divIcon({
+      className: "",
+      html: '<span class="block h-9 w-9 rounded-full border-4 border-white bg-[#2563eb] shadow-[0_12px_28px_rgba(37,99,235,0.35)] ring-4 ring-blue-500/25"></span>',
+      iconAnchor: [18, 18],
+      iconSize: [36, 36],
+    });
+
+    searchMarkerRef.current = leaflet
+      .marker([searchTarget.latitude, searchTarget.longitude], {
+        icon,
+        title: searchTarget.label,
+      })
+      .addTo(map);
+
+    const tooltip = document.createElement("span");
+    tooltip.textContent = searchTarget.label;
+
+    searchMarkerRef.current.bindTooltip(tooltip, {
+      direction: "top",
+      offset: [0, -16],
+      opacity: 0.92,
+    });
+
+    map.flyTo([searchTarget.latitude, searchTarget.longitude], Math.max(map.getZoom(), 13), {
+      duration: 0.95,
+    });
+  }, [leaflet, searchTarget]);
 
   return (
     <div

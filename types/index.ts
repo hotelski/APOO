@@ -32,6 +32,12 @@ export type Report = {
   createdAt: Timestamp | null;
 };
 
+export type MapLocationTarget = {
+  latitude: number;
+  longitude: number;
+  label: string;
+};
+
 export type CreateMemoryInput = {
   userId: string;
   title: string;
