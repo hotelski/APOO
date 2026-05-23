@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
+import { RasterWorldMap } from "@/components/map/RasterWorldMap";
 import { cn } from "@/lib/cn";
 import {
   defaultMapCenter,
   defaultMapZoom,
-  fallbackMapStyle,
   mapboxToken,
 } from "@/lib/mapbox";
 import type { Memory } from "@/types";
@@ -18,6 +18,32 @@ type MemoryMapProps = {
 };
 
 export function MemoryMap({ className, memories, onMemorySelect }: MemoryMapProps) {
+  if (!mapboxToken) {
+    return (
+      <RasterWorldMap
+        className={className}
+        markers={memories.map((memory) => ({
+          id: memory.id,
+          latitude: memory.latitude,
+          longitude: memory.longitude,
+          onClick: () => onMemorySelect(memory),
+          privacy: memory.privacy,
+          title: memory.title,
+        }))}
+      />
+    );
+  }
+
+  return (
+    <MapboxMemoryMap
+      className={className}
+      memories={memories}
+      onMemorySelect={onMemorySelect}
+    />
+  );
+}
+
+function MapboxMemoryMap({ className, memories, onMemorySelect }: MemoryMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -27,15 +53,13 @@ export function MemoryMap({ className, memories, onMemorySelect }: MemoryMapProp
       return;
     }
 
-    if (mapboxToken) {
-      mapboxgl.accessToken = mapboxToken;
-    }
+    mapboxgl.accessToken = mapboxToken;
 
     mapRef.current = new mapboxgl.Map({
       center: defaultMapCenter,
       container: containerRef.current,
       renderWorldCopies: true,
-      style: mapboxToken ? "mapbox://styles/mapbox/light-v11" : fallbackMapStyle,
+      style: "mapbox://styles/mapbox/light-v11",
       zoom: defaultMapZoom,
     });
 

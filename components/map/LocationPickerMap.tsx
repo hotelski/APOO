@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
+import { RasterWorldMap } from "@/components/map/RasterWorldMap";
 import { mapboxToken } from "@/lib/mapbox";
 
 type LocationPickerMapProps = {
@@ -11,6 +12,40 @@ type LocationPickerMapProps = {
 };
 
 export function LocationPickerMap({
+  latitude,
+  longitude,
+  onChange,
+}: LocationPickerMapProps) {
+  if (!mapboxToken) {
+    return (
+      <RasterWorldMap
+        ariaLabel="Choose memory location"
+        className="min-h-64 rounded-lg"
+        markers={[
+          {
+            id: "selected-location",
+            label: "",
+            latitude,
+            longitude,
+            privacy: "private",
+            title: "Selected location",
+          },
+        ]}
+        onMapClick={onChange}
+      />
+    );
+  }
+
+  return (
+    <MapboxLocationPickerMap
+      latitude={latitude}
+      longitude={longitude}
+      onChange={onChange}
+    />
+  );
+}
+
+function MapboxLocationPickerMap({
   latitude,
   longitude,
   onChange,
@@ -75,14 +110,6 @@ export function LocationPickerMap({
     markerRef.current?.setLngLat([longitude, latitude]);
     mapRef.current?.easeTo({ center: [longitude, latitude], duration: 500 });
   }, [latitude, longitude]);
-
-  if (!mapboxToken) {
-    return (
-      <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-white/20 bg-white/[0.04] p-5 text-center text-sm text-ivory/55">
-        Add a Mapbox token to use the visual picker, or enter coordinates below.
-      </div>
-    );
-  }
 
   return <div className="min-h-64 rounded-lg" ref={containerRef} />;
 }
