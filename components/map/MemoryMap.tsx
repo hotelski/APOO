@@ -19,6 +19,7 @@ const memoryPointLayerId = "apoo-memory-points";
 type MemoryMapProps = {
   className?: string;
   memories: Memory[];
+  onMemoryGroupSelect?: (memories: Memory[]) => void;
   onMemorySelect: (memory: Memory) => void;
   searchTarget?: MapLocationTarget | null;
 };
@@ -26,6 +27,7 @@ type MemoryMapProps = {
 export function MemoryMap({
   className,
   memories,
+  onMemoryGroupSelect,
   onMemorySelect,
   searchTarget,
 }: MemoryMapProps) {
@@ -48,6 +50,20 @@ export function MemoryMap({
         clusterMarkers
         className={className}
         markers={rasterMarkers}
+        onMarkerClusterSelect={(markerIds) => {
+          const selectedMemories = markerIds
+            .map((markerId) => memories.find((memory) => memory.id === markerId))
+            .filter((memory): memory is Memory => Boolean(memory));
+
+          if (selectedMemories.length > 1) {
+            onMemoryGroupSelect?.(selectedMemories);
+            return;
+          }
+
+          if (selectedMemories[0]) {
+            onMemorySelect(selectedMemories[0]);
+          }
+        }}
         searchTarget={searchTarget}
       />
     );
@@ -57,6 +73,7 @@ export function MemoryMap({
     <MapboxMemoryMap
       className={className}
       memories={memories}
+      onMemoryGroupSelect={onMemoryGroupSelect}
       onMemorySelect={onMemorySelect}
       searchTarget={searchTarget}
     />
@@ -66,6 +83,7 @@ export function MemoryMap({
 function MapboxMemoryMap({
   className,
   memories,
+  onMemoryGroupSelect,
   onMemorySelect,
   searchTarget,
 }: MemoryMapProps) {
@@ -73,6 +91,7 @@ function MapboxMemoryMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const memoriesRef = useRef(memories);
+  const onMemoryGroupSelectRef = useRef(onMemoryGroupSelect);
   const onMemorySelectRef = useRef(onMemorySelect);
   const [mapReady, setMapReady] = useState(false);
 
@@ -98,6 +117,10 @@ function MapboxMemoryMap({
   useEffect(() => {
     memoriesRef.current = memories;
   }, [memories]);
+
+  useEffect(() => {
+    onMemoryGroupSelectRef.current = onMemoryGroupSelect;
+  }, [onMemoryGroupSelect]);
 
   useEffect(() => {
     onMemorySelectRef.current = onMemorySelect;
@@ -202,6 +225,54 @@ function MapboxMemoryMap({
         type: "circle",
       });
 
+      const memoriesAtExactCoordinate = (coordinates: GeoJSON.Position) => {
+        const [longitude, latitude] = coordinates;
+
+        return memoriesRef.current.filter(
+          (memory) =>
+            memory.latitude.toFixed(6) === Number(latitude).toFixed(6) &&
+            memory.longitude.toFixed(6) === Number(longitude).toFixed(6),
+        );
+      };
+
+      const memoriesNearCluster = (coordinates: GeoJSON.Position) => {
+        if (!mapRef.current) {
+          return [];
+        }
+
+        const clusterPoint = mapRef.current.project(coordinates as [number, number]);
+
+        return memoriesRef.current.filter((memory) => {
+          const memoryPoint = mapRef.current?.project([
+            memory.longitude,
+            memory.latitude,
+          ]);
+
+          if (!memoryPoint) {
+            return false;
+          }
+
+          const distanceX = memoryPoint.x - clusterPoint.x;
+          const distanceY = memoryPoint.y - clusterPoint.y;
+
+          return Math.sqrt(distanceX * distanceX + distanceY * distanceY) <= 48;
+        });
+      };
+
+      const selectMemoryGroup = (selectedMemories: Memory[]) => {
+        if (selectedMemories.length > 1) {
+          onMemoryGroupSelectRef.current?.(selectedMemories);
+          return true;
+        }
+
+        if (selectedMemories[0]) {
+          onMemorySelectRef.current(selectedMemories[0]);
+          return true;
+        }
+
+        return false;
+      };
+
       mapRef.current.on("click", memoryClusterLayerId, (event) => {
         const feature = event.features?.[0];
         const coordinates = (feature?.geometry as GeoJSON.Point | undefined)
@@ -211,10 +282,25 @@ function MapboxMemoryMap({
           return;
         }
 
+        const exactCoordinateMemories = memoriesAtExactCoordinate(coordinates);
+
+        if (exactCoordinateMemories.length > 1) {
+          selectMemoryGroup(exactCoordinateMemories);
+          return;
+        }
+
+        if ((mapRef.current?.getZoom() ?? 0) >= 17) {
+          const nearbyMemories = memoriesNearCluster(coordinates);
+
+          if (selectMemoryGroup(nearbyMemories)) {
+            return;
+          }
+        }
+
         mapRef.current?.easeTo({
           center: coordinates as [number, number],
           duration: 650,
-          zoom: Math.min(18, (mapRef.current?.getZoom() ?? 1) + 2),
+          zoom: Math.min(22, (mapRef.current?.getZoom() ?? 1) + 2),
         });
       });
 

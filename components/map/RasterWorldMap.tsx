@@ -28,6 +28,7 @@ type RasterWorldMapProps = {
   className?: string;
   clusterMarkers?: boolean;
   markers?: RasterWorldMapMarker[];
+  onMarkerClusterSelect?: (markerIds: string[]) => void;
   onMapClick?: (location: { latitude: number; longitude: number }) => void;
   searchTarget?: MapLocationTarget | null;
 };
@@ -136,6 +137,23 @@ function markerHtml(count: number, isPrivate: boolean) {
   return `<span style="${baseStyle};">${formatClusterCount(count)}</span>`;
 }
 
+function hasExactSameLocation(markers: RasterWorldMapMarker[]) {
+  const [firstMarker] = markers;
+
+  if (!firstMarker) {
+    return false;
+  }
+
+  const latitude = firstMarker.latitude.toFixed(6);
+  const longitude = firstMarker.longitude.toFixed(6);
+
+  return markers.every(
+    (marker) =>
+      marker.latitude.toFixed(6) === latitude &&
+      marker.longitude.toFixed(6) === longitude,
+  );
+}
+
 function buildRasterClusters(
   leaflet: LeafletModule,
   map: LeafletMap,
@@ -204,6 +222,7 @@ export function RasterWorldMap({
   className,
   clusterMarkers = false,
   markers = [],
+  onMarkerClusterSelect,
   onMapClick,
   searchTarget,
 }: RasterWorldMapProps) {
@@ -331,9 +350,14 @@ export function RasterWorldMap({
       if (cluster.count > 1) {
         leafletMarker.on("click", () => {
           const nextZoom = Math.min(maxClusterZoom, map.getZoom() + 2);
+          const markerIds = cluster.markers.map((marker) => marker.id);
 
-          if (map.getZoom() >= maxClusterZoom - 0.25) {
-            firstMarker?.onClick?.();
+          if (
+            onMarkerClusterSelect &&
+            (hasExactSameLocation(cluster.markers) ||
+              map.getZoom() >= maxClusterZoom - 0.25)
+          ) {
+            onMarkerClusterSelect(markerIds);
             return;
           }
 
@@ -347,7 +371,7 @@ export function RasterWorldMap({
 
       return leafletMarker;
     });
-  }, [clusterMarkers, leaflet, markers, mapViewVersion]);
+  }, [clusterMarkers, leaflet, markers, mapViewVersion, onMarkerClusterSelect]);
 
   useEffect(() => {
     if (!leaflet || !mapRef.current) {

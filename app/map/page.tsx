@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { AddMemoryModal } from "@/components/memories/AddMemoryModal";
 import { MemoryDetailModal } from "@/components/memories/MemoryDetailModal";
+import { MemoryGroupModal } from "@/components/memories/MemoryGroupModal";
 import { MemoryMap } from "@/components/map/MemoryMap";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useVisibleMemories } from "@/hooks/useMemories";
@@ -47,6 +48,7 @@ export default function MapPage() {
   const [addressQuery, setAddressQuery] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedMemoryGroupIds, setSelectedMemoryGroupIds] = useState<string[]>([]);
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [searchError, setSearchError] = useState("");
   const [addressSuggestions, setAddressSuggestions] = useState<MapLocationTarget[]>([]);
@@ -58,6 +60,9 @@ export default function MapPage() {
 
   const selectedMemory =
     memories.find((memory) => memory.id === selectedMemoryId) ?? null;
+  const selectedMemoryGroup = selectedMemoryGroupIds
+    .map((memoryId) => memories.find((memory) => memory.id === memoryId))
+    .filter((memory): memory is Memory => Boolean(memory));
   const privateCount = memories.filter((memory) => memory.privacy === "private").length;
   const publicCount = memories.length - privateCount;
   const displayName = profile?.displayName || userDisplayName(user);
@@ -85,6 +90,15 @@ export default function MapPage() {
 
   const handleSelect = useCallback((memory: Memory) => {
     setSelectedMemoryId(memory.id);
+  }, []);
+
+  const handleMemoryGroupSelect = useCallback((groupMemories: Memory[]) => {
+    if (groupMemories.length === 1) {
+      setSelectedMemoryId(groupMemories[0].id);
+      return;
+    }
+
+    setSelectedMemoryGroupIds(groupMemories.map((memory) => memory.id));
   }, []);
 
   useEffect(() => {
@@ -273,6 +287,7 @@ export default function MapPage() {
       <MemoryMap
         className="absolute inset-0 z-0 h-full min-h-0 rounded-none"
         memories={memories}
+        onMemoryGroupSelect={handleMemoryGroupSelect}
         onMemorySelect={handleSelect}
         searchTarget={searchTarget}
       />
@@ -462,6 +477,15 @@ export default function MapPage() {
         onClose={() => setAddOpen(false)}
         onCreated={(memoryId) => setSelectedMemoryId(memoryId)}
         open={addOpen}
+      />
+      <MemoryGroupModal
+        memories={selectedMemoryGroup}
+        onClose={() => setSelectedMemoryGroupIds([])}
+        onSelect={(memory) => {
+          setSelectedMemoryGroupIds([]);
+          setSelectedMemoryId(memory.id);
+        }}
+        open={selectedMemoryGroup.length > 1}
       />
       <MemoryDetailModal
         memory={selectedMemory}
